@@ -1,0 +1,16 @@
+{
+  "name": "taxi-system",
+  "version": "1.0.0",
+  "description": "System zarządzania pracą kierowcy taxi",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js"
+  },
+  "dependencies": {
+    "express": "^5.1.0",
+    "mysql2": "^3.14.0",
+    "dotenv": "^16.4.7",
+    "cors": "^2.8.5"
+  }
+}

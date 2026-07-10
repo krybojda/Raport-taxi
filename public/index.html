@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+<meta charset="UTF-8">
+<title>Taxi System</title>
+
+<style>
+
+body {
+    font-family: Arial;
+    margin:40px;
+}
+
+.box {
+    padding:20px;
+    border:1px solid #ccc;
+    width:400px;
+}
+
+.ok {
+    color:green;
+}
+
+.error {
+    color:red;
+}
+
+</style>
+
+</head>
+
+
+<body>
+
+
+<h1>System Taxi</h1>
+
+
+<div class="box">
+
+<h3>Status systemu</h3>
+
+<p id="app">
+Sprawdzanie...
+</p>
+
+
+<p id="db">
+Sprawdzanie bazy...
+</p>
+
+
+</div>
+
+
+<script>
+
+
+fetch("/api/test-db")
+
+.then(r=>r.json())
+
+.then(data=>{
+
+
+document.getElementById("app").innerHTML =
+"Node.js: <span class='ok'>działa</span>";
+
+
+document.getElementById("db").innerHTML =
+"MySQL: <span class='ok'>połączono</span><br>" +
+"Czas bazy: " + data.data[0].mysql_time;
+
+
+})
+
+
+.catch(err=>{
+
+
+document.getElementById("app").innerHTML =
+"Bląd: " + err;
+
+
+});
+
+
+</script>
+
+
+</body>
+
+</html>

@@ -1,0 +1,18 @@
+# Node
+node_modules/
+npm-debug.log
+
+# Environment
+.env
+
+# Uploads
+uploads/
+
+# Backups
+backups/
+
+# Docker
+*.log
+
+# OS
+.DS_Store
