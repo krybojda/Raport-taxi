@@ -69,7 +69,7 @@ services:
     restart: unless-stopped
     environment:
       TZ: Europe/Warsaw
-      BACKUP_CRON_EXPRESSION: "0 */6 * * *"
+      BACKUP_CRON_EXPRESSION: "0 4 * * *"
       BACKUP_FILENAME: "taxi-%Y-%m-%d-%H-%M.tar.gz"
       BACKUP_RETENTION_DAYS: "14"
 
