@@ -3,7 +3,7 @@ name: Taxi CI - Develop
 on:
   push:
     branches:
-      - develop
+      - dev
 
   workflow_dispatch:
 
