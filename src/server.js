@@ -3,7 +3,7 @@ const mysql = require("mysql2/promise");
 
 const app = express();
 
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
 
 const db = mysql.createPool({
@@ -20,7 +20,7 @@ const db = mysql.createPool({
 app.use(express.static("public"));
 
 
-app.get("/api/test-db", async (req, res) => {
+app.get("/api/database", async (req, res) => {
 
     try {
 
