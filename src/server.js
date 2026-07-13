@@ -19,6 +19,13 @@ const db = mysql.createPool({
 
 app.use(express.static("public"));
 
+app.get("/api/status", (req, res) => {
+    res.json({
+        status: "OK",
+        node: "running"
+    });
+});
+
 
 app.get("/api/database", async (req, res) => {
 

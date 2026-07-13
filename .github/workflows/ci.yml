@@ -72,10 +72,9 @@ jobs:
           DB_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
 
         run: |
-          npm start &
-
+          run: |
+          npm start > app.log 2>&1 &
           echo $! > app.pid
-
           sleep 10
 
 
