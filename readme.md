@@ -76,6 +76,16 @@ Dostępne skrypty w `package.json`:
 
 - `npm start` - uruchamia `node src/server.js`
 - `npm run dev` - uruchamia `node --watch src/server.js`
+- `npm run lint` - uruchamia ESLint w celu sprawdzenia jakości kodu
+- `npm run lint:fix` - automatycznie poprawia problemy wykryte przez ESLint
+- `npm run format` - sprawdza formatowanie kodu przy użyciu Prettier
+- `npm run format:fix` - automatycznie formatuje pliki zgodnie z zasadami Prettier
+
+## Dostępność
+
+Strona jest dostępna pod adresem:
+
+- https://krybojda.ddns.net/taxi/
 
 ## Uwagi
 
