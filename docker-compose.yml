@@ -21,8 +21,8 @@ services:
       - ./uploads:/app/uploads
       - ./public:/app/public
 
-#    expose:
-#      - "3000"
+    #    expose:
+    #      - "3000"
     ports:
       - "3000:3000"
 
@@ -31,7 +31,6 @@ services:
         condition: service_healthy
 
   taxi-mysql:
-
     image: mysql:8.4
     container_name: taxi-mysql
     restart: unless-stopped
@@ -41,29 +40,17 @@ services:
       MYSQL_USER: ${MYSQL_USER}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
 
-
     volumes:
       - taxi_mysql_data:/var/lib/mysql
 
-
     healthcheck:
-      test:
-        [
-          "CMD",
-          "mysqladmin",
-          "ping",
-          "-h",
-          "localhost"
-        ]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
 
       interval: 10s
       timeout: 5s
       retries: 10
 
-
-
   taxi-backup:
-
     image: offen/docker-volume-backup
     container_name: taxi-backup
     restart: unless-stopped
@@ -74,27 +61,25 @@ services:
       BACKUP_RETENTION_DAYS: "14"
 
     volumes:
-       # MySQL
-    - taxi_mysql_data:/backup/mysql:ro
+      # MySQL
+      - taxi_mysql_data:/backup/mysql:ro
 
-    # Uploads
-    - ./uploads:/backup/uploads:ro
+      # Uploads
+      - ./uploads:/backup/uploads:ro
 
-    # Kod aplikacji
-    - ./src:/backup/src:ro
-    - ./public:/backup/public:ro
+      # Kod aplikacji
+      - ./src:/backup/src:ro
+      - ./public:/backup/public:ro
 
-    # Konfiguracja Dockera
-    - ./docker-compose.yml:/backup/docker/docker-compose.yml:ro
-    - ./Dockerfile:/backup/docker/Dockerfile:ro
+      # Konfiguracja Dockera
+      - ./docker-compose.yml:/backup/docker/docker-compose.yml:ro
+      - ./Dockerfile:/backup/docker/Dockerfile:ro
 
-    # Gdzie zapisać archiwum
-    - ./backups:/archive
+      # Gdzie zapisać archiwum
+      - ./backups:/archive
 
-    # Nginx
-    - /etc/nginx/sites-enabled/vps-dashboard:/backup/nginx/vps-dashboard:ro
-
-
+      # Nginx
+      - /etc/nginx/sites-enabled/vps-dashboard:/backup/nginx/vps-dashboard:ro
 
 volumes:
   taxi_mysql_data:

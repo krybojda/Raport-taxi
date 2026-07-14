@@ -12,13 +12,13 @@ export default [
       sourceType: "module",
 
       globals: {
-        ...globals.node
-      }
+        ...globals.node,
+      },
     },
 
     rules: {
       "no-unused-vars": "warn",
-      "no-console": "off"
-    }
-  }
+      "no-console": "off",
+    },
+  },
 ];

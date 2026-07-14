@@ -7,10 +7,8 @@ on:
 
   workflow_dispatch:
 
-
 jobs:
   test:
-
     runs-on: ubuntu-latest
 
     services:
@@ -32,13 +30,10 @@ jobs:
           --health-timeout=5s
           --health-retries=10
 
-
     steps:
-
       # Pobranie repo
       - name: Checkout repository
         uses: actions/checkout@v4
-
 
       # Node
       - name: Setup Node.js
@@ -46,7 +41,6 @@ jobs:
         with:
           node-version: 22
           cache: npm
-
 
       # Instalacja paczek
       - name: Install dependencies
@@ -68,14 +62,13 @@ jobs:
       # Uruchomienie docker-compose
       - name: Validate docker-compose
         run: |
-            docker compose config
-            docker compose up -d
+          docker compose config
+          docker compose up -d
 
       # Sprawdzenie składni JS
       - name: Check JavaScript syntax
         run: |
           node --check src/server.js
-
 
       # Start aplikacji
       - name: Start application
@@ -94,24 +87,20 @@ jobs:
           echo $! > app.pid
           sleep 10
 
-
       # Sprawdzenie portu
       - name: Check application port
         run: |
           curl --fail http://localhost:3000
-
 
       # Test API status
       - name: Check API endpoint
         run: |
           curl --fail http://localhost:3000/api/status
 
-
       # Test bazy danych
       - name: Check database connection
         run: |
           curl --fail http://localhost:3000/api/database
-
 
       # Zamknięcie aplikacji
       - name: Stop application

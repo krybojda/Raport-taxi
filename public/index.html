@@ -1,98 +1,60 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Taxi System</title>
 
-<head>
-<meta charset="UTF-8">
-<title>Taxi System</title>
+    <style>
+      body {
+        font-family: Arial;
+        margin: 40px;
+      }
 
-<style>
+      .box {
+        padding: 20px;
+        border: 1px solid #ccc;
+        width: 400px;
+      }
 
-body {
-    font-family: Arial;
-    margin:40px;
-}
+      .ok {
+        color: green;
+      }
 
-.box {
-    padding:20px;
-    border:1px solid #ccc;
-    width:400px;
-}
+      .error {
+        color: red;
+      }
+    </style>
+  </head>
 
-.ok {
-    color:green;
-}
+  <body>
+    <h1>System Taxi</h1>
 
-.error {
-    color:red;
-}
+    <div class="box">
+      <h3>Status systemu</h3>
 
-</style>
+      <p id="app">Sprawdzanie...</p>
 
-</head>
+      <p id="db">Sprawdzanie bazy...</p>
+    </div>
 
+    <script>
+      const BASE_URL = window.location.pathname.startsWith("/taxi") ? "/taxi" : "";
 
-<body>
+      fetch(`${BASE_URL}/api/test-db`)
+        .then((r) => r.json())
 
+        .then((data) => {
+          document.getElementById("app").innerHTML = "Node.js: <span class='ok'>działa</span>";
 
-<h1>System Taxi</h1>
+          document.getElementById("db").innerHTML =
+            "MySQL: <span class='ok'>połączono</span><br>" +
+            "Czas bazy: " +
+            data.data[0].mysql_time;
+        })
 
-
-<div class="box">
-
-<h3>Status systemu</h3>
-
-<p id="app">
-Sprawdzanie...
-</p>
-
-
-<p id="db">
-Sprawdzanie bazy...
-</p>
-
-
-</div>
-
-
-<script>
-
-
-const BASE_URL = window.location.pathname.startsWith("/taxi")
-    ? "/taxi"
-    : "";
-
-fetch(`${BASE_URL}/api/test-db`)
-
-.then(r=>r.json())
-
-.then(data=>{
-
-
-document.getElementById("app").innerHTML =
-"Node.js: <span class='ok'>działa</span>";
-
-
-document.getElementById("db").innerHTML =
-"MySQL: <span class='ok'>połączono</span><br>" +
-"Czas bazy: " + data.data[0].mysql_time;
-
-
-})
-
-
-.catch(err=>{
-
-
-document.getElementById("app").innerHTML =
-"Bląd: " + err;
-
-
-});
-
-
-</script>
-
-
-</body>
-
+        .catch((err) => {
+          document.getElementById("app").innerHTML = "Bląd: " + err;
+        });
+    </script>
+  </body>
 </html>

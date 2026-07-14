@@ -40,7 +40,6 @@ Dane połączenia pobierane są z `.env`:
 - `MYSQL_USER`
 - `MYSQL_PASSWORD`
 
-
 ## Backup
 
 Usługa `taxi-backup` tworzy kopie zapasowe przy użyciu obrazu `offen/docker-volume-backup`.
