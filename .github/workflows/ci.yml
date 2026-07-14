@@ -52,6 +52,24 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # ESLint
+      - name: ESLint
+        run: npm run lint
+
+      # Sprawdzenie formatowania
+      - name: Check formatting
+        run: npm run format
+
+      # Build Docker image
+      - name: Build Docker image
+        run: |
+          docker build -t taxi-app .
+
+      # Uruchomienie docker-compose
+      - name: Validate docker-compose
+        run: |
+            docker compose config
+            docker compose up
 
       # Sprawdzenie składni JS
       - name: Check JavaScript syntax

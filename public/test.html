@@ -57,7 +57,11 @@ Sprawdzanie bazy...
 <script>
 
 
-fetch("/taxi/api/test-db")
+const BASE_URL = window.location.pathname.startsWith("/taxi")
+    ? "/taxi"
+    : "";
+
+fetch(`${BASE_URL}/api/test-db`)
 
 .then(r=>r.json())
 
