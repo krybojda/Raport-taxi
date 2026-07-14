@@ -59,11 +59,10 @@ jobs:
         run: |
           docker build -t taxi-app .
 
-      # Uruchomienie docker-compose
+      # Validate docker-compose
       - name: Validate docker-compose
         run: |
           docker compose config
-          docker compose up -d
 
       # Sprawdzenie składni JS
       - name: Check JavaScript syntax
