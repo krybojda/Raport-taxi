@@ -16,3 +16,8 @@ backups/
 
 # OS
 .DS_Store
+
+# Backup mySQL
+mysql/backup/*.sql
+!mysql/backup/*.sql.gpg
+

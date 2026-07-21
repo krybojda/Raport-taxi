@@ -1,0 +1,108 @@
+name: Taxi CI - Develop
+
+on:
+  push:
+    branches:
+      - dev
+
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.4
+
+        env:
+          MYSQL_ROOT_PASSWORD: ${{ secrets.MYSQL_ROOT_PASSWORD }}
+          MYSQL_DATABASE: ${{ secrets.MYSQL_DATABASE }}
+          MYSQL_USER: ${{ secrets.MYSQL_USER }}
+          MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
+
+        ports:
+          - 3306:3306
+
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost -uroot -p${MYSQL_ROOT_PASSWORD}"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    steps:
+      # Pobranie repo
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Node
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      # Instalacja paczek
+      - name: Install dependencies
+        run: npm ci
+
+      # ESLint
+      - name: ESLint
+        run: npm run lint
+
+      # Sprawdzenie formatowania
+      - name: Check formatting
+        run: npm run format
+
+      # Build Docker image
+      - name: Build Docker image
+        run: |
+          docker build -t taxi-app .
+
+      # Validate docker-compose
+      - name: Validate docker-compose
+        run: |
+          docker compose config
+
+      # Sprawdzenie składni JS
+      - name: Check JavaScript syntax
+        run: |
+          node --check src/server.js
+
+      # Start aplikacji
+      - name: Start application
+        env:
+          NODE_ENV: test
+          PORT: 3000
+
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_NAME: ${{ secrets.MYSQL_DATABASE }}
+          DB_USER: ${{ secrets.MYSQL_USER }}
+          DB_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
+
+        run: |
+          npm start > app.log 2>&1 &
+          echo $! > app.pid
+          sleep 10
+
+      # Sprawdzenie portu
+      - name: Check application port
+        run: |
+          curl --fail http://localhost:3000
+
+      # Test API status
+      - name: Check API endpoint
+        run: |
+          curl --fail http://localhost:3000/api/status
+
+      # Test bazy danych
+      - name: Check database connection
+        run: |
+          curl --fail http://localhost:3000/api/database
+
+      # Zamknięcie aplikacji
+      - name: Stop application
+        if: always()
+        run: |
+          kill $(cat app.pid) || true
