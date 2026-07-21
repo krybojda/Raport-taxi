@@ -42,7 +42,6 @@ services:
 
     volumes:
       - taxi_mysql_data:/var/lib/mysql
-#      - ./mysql_data:/var/lib/mysql
 
     ports:
       - "3307:3306"

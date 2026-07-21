@@ -1,16 +1,17 @@
 #!/bin/bash
-
 set -e 
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 set -a
-source .env
+source "$SCRIPT_DIR/../.env"
 set +a
 
 echo "Backup MySQL..."
 
 docker exec taxi-mysql \
-mysqldump -u "$MYSQL_USER" -p"$MYSQL_PASSWORD" "$MYSQL_DATABASE" \
+mysqldump --no-tablespaces -u "$MYSQL_USER" -p"$MYSQL_PASSWORD" "$MYSQL_DATABASE" \
 > mysql/backup/taxi.sql
+
 
 gpg --batch \
     --yes \
