@@ -20,3 +20,4 @@ backups/
 # Backup mySQL
 mysql/backup/*.sql
 !mysql/backup/*.sql.gpg
+
