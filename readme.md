@@ -124,7 +124,6 @@ docker compose up -d --build
 
 8. Aplikacja powinna być dostępna na `http://localhost:3000`.
 
-
 ## Skrypty npm
 
 Dostępne skrypty w `package.json`:
@@ -139,4 +138,5 @@ Dostępne skrypty w `package.json`:
 ## Dostępność
 
 Strona jest dostępna pod adresem:
+
 - https://krybojda.ddns.net/taxi/
