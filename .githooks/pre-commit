@@ -1,0 +1,14 @@
+#!/bin/bash
+
+echo "Tworzenie backupu bazy danych..."
+
+./mysql/backup-db.sh
+
+if [ $? -ne 0 ]; then
+    echo "Backup nie powiódł się!"
+    exit 1
+fi
+
+git add mysql/backup/taxi.sql.gpg
+
+echo "Backup dodany do commita."
