@@ -50,6 +50,16 @@ app.get("/api/database", async (req, res) => {
 });
 
 /*
+ * LOGI ŻĄDAŃ
+ */
+app.use((req, res, next) => {
+  console.log("REQUEST:", req.method, req.url);
+  console.log("BODY:", req.body);
+
+  next();
+});
+
+/*
  * LOGOWANIE
  */
 app.post("/api/auth/login", async (req, res) => {
