@@ -1,15 +1,13 @@
 const bcrypt = require("bcrypt");
 
 const db = require("./database");
+const { generateToken } = require("./jwt");
 
-const { generateAccessToken, generateRefreshToken } = require("./jwt");
-
-const SALT_ROUNDS = 12;
-
-/*
- * LOGOWANIE
- */
 async function loginUser(email, password) {
+  if (!email || !password) {
+    throw new Error("Email i hasło są wymagane");
+  }
+
   const [users] = await db.query(
     `
     SELECT
@@ -33,7 +31,7 @@ async function loginUser(email, password) {
   const user = users[0];
 
   if (user.status !== "active") {
-    throw new Error("Konto nie jest aktywne");
+    throw new Error("Konto jest nieaktywne");
   }
 
   const passwordValid = await bcrypt.compare(password, user.password_hash);
@@ -42,13 +40,10 @@ async function loginUser(email, password) {
     throw new Error("Nieprawidłowy email lub hasło");
   }
 
-  const accessToken = generateAccessToken(user);
-
-  const refreshToken = generateRefreshToken(user);
+  const token = generateToken(user);
 
   return {
-    accessToken,
-    refreshToken,
+    token,
 
     user: {
       id: user.id,
@@ -61,5 +56,4 @@ async function loginUser(email, password) {
 
 module.exports = {
   loginUser,
-  SALT_ROUNDS,
 };

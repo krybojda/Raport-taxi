@@ -1,47 +1,30 @@
 const jwt = require("jsonwebtoken");
 
-const ACCESS_TOKEN_SECRET = process.env.ACCESS_TOKEN_SECRET;
-const REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET;
+const JWT_SECRET = process.env.JWT_SECRET;
 
-const ACCESS_TOKEN_EXPIRES_IN = "15m";
-const REFRESH_TOKEN_EXPIRES_IN = "30d";
+if (!JWT_SECRET) {
+  throw new Error("Brak JWT_SECRET w zmiennych środowiskowych");
+}
 
-function generateAccessToken(user) {
+function generateToken(user) {
   return jwt.sign(
     {
       userId: user.id,
+      email: user.email,
       role: user.role,
     },
-    ACCESS_TOKEN_SECRET,
+    JWT_SECRET,
     {
-      expiresIn: ACCESS_TOKEN_EXPIRES_IN,
+      expiresIn: "7d",
     },
   );
 }
 
-function generateRefreshToken(user) {
-  return jwt.sign(
-    {
-      userId: user.id,
-    },
-    REFRESH_TOKEN_SECRET,
-    {
-      expiresIn: REFRESH_TOKEN_EXPIRES_IN,
-    },
-  );
-}
-
-function verifyAccessToken(token) {
-  return jwt.verify(token, ACCESS_TOKEN_SECRET);
-}
-
-function verifyRefreshToken(token) {
-  return jwt.verify(token, REFRESH_TOKEN_SECRET);
+function verifyToken(token) {
+  return jwt.verify(token, JWT_SECRET);
 }
 
 module.exports = {
-  generateAccessToken,
-  generateRefreshToken,
-  verifyAccessToken,
-  verifyRefreshToken,
+  generateToken,
+  verifyToken,
 };

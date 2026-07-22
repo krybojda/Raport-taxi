@@ -8,11 +8,14 @@ const { loginUser } = require("./auth");
 
 const { authenticateToken } = require("./authMiddleware");
 
+const cookieParser = require("cookie-parser");
+
 const app = express();
 
 const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
+app.use(cookieParser());
 
 app.use(express.static("public"));
 
@@ -66,20 +69,22 @@ app.post("/api/auth/login", async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    if (!email || !password) {
-      return res.status(400).json({
-        status: "ERROR",
-        message: "Email i hasło są wymagane",
-      });
-    }
-
     const result = await loginUser(email, password);
+
+    res.cookie("auth_token", result.token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+      path: "/",
+    });
 
     res.json({
       status: "OK",
+
       message: "Zalogowano pomyślnie",
 
-      data: result,
+      user: result.user,
     });
   } catch (error) {
     console.error(error);
