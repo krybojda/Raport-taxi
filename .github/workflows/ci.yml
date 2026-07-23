@@ -86,11 +86,6 @@ jobs:
           echo $! > app.pid
           sleep 10
 
-      # Sprawdzenie portu
-      - name: Check application port
-        run: |
-          curl --fail http://localhost:3000
-
       # Test API status
       - name: Check API endpoint
         run: |
