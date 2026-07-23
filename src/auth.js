@@ -8,7 +8,7 @@ async function loginUser(email, password) {
     throw new Error("Email i hasło są wymagane");
   }
 
-  const [users] = await db.query(
+  const [users] = await db.execute(
     `
     SELECT
       id,

@@ -1,36 +1,27 @@
-const { verifyAccessToken } = require("./jwt");
+const { verifyToken } = require("./jwt");
 
 function authenticateToken(req, res, next) {
-  const authHeader = req.headers.authorization;
+  const token = req.cookies?.auth_token;
 
-  if (!authHeader) {
+  if (!token) {
     return res.status(401).json({
       status: "ERROR",
       message: "Brak tokenu autoryzacyjnego",
     });
   }
 
-  const parts = authHeader.split(" ");
-
-  if (parts.length !== 2 || parts[0] !== "Bearer") {
-    return res.status(401).json({
-      status: "ERROR",
-      message: "Nieprawidłowy format tokenu",
-    });
-  }
-
-  const token = parts[1];
-
   try {
-    const decoded = verifyAccessToken(token);
+    const decoded = verifyToken(token);
 
     req.user = decoded;
 
     next();
   } catch (error) {
+    console.error("JWT error:", error.message);
+
     return res.status(401).json({
       status: "ERROR",
-      message: "Token jest nieprawidłowy lub wygasł",
+      message: "Nieprawidłowy lub wygasły token",
     });
   }
 }
