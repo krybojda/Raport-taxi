@@ -117,7 +117,7 @@ jobs:
             -X POST \
             http://localhost:3000/api/auth/login \
             -H "Content-Type: application/json" \
-            --data '{"email":"ci-test@example.com","password":"CI_Test_Password_123!"}'
+            --data '{"name":"CI Test User","password":"CI_Test_Password_123!"}'
 
       # Test zalogowanego użytkownika
       - name: Test authenticated user
