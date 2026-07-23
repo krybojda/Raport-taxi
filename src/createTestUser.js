@@ -10,6 +10,18 @@ async function createTestUser() {
   const name = "CI Test User";
 
   try {
+    await db.execute(`
+      CREATE TABLE IF NOT EXISTS users (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        email VARCHAR(255) NOT NULL UNIQUE,
+        password_hash VARCHAR(255) NOT NULL,
+        name VARCHAR(255) NOT NULL,
+        role ENUM('driver', 'admin') NOT NULL DEFAULT 'driver',
+        status ENUM('active', 'inactive') NOT NULL DEFAULT 'active',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
     const passwordHash = await bcrypt.hash(password, 12);
 
     await db.execute(
@@ -24,6 +36,11 @@ async function createTestUser() {
         )
       VALUES
         (?, ?, ?, 'driver', 'active')
+      ON DUPLICATE KEY UPDATE
+        password_hash = VALUES(password_hash),
+        name = VALUES(name),
+        role = VALUES(role),
+        status = VALUES(status)
       `,
       [email, passwordHash, name],
     );

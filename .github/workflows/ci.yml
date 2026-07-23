@@ -56,7 +56,7 @@ jobs:
           DB_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
 
         run: |
-          node src/createTestUser.js ci-test@example.com "CI Test User"
+          node src/createTestUser.js
 
       # ESLint
       - name: ESLint
