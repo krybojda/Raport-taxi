@@ -10,7 +10,7 @@ function generateToken(user) {
   return jwt.sign(
     {
       userId: user.id,
-      email: user.email,
+      username: user.name,
       role: user.role,
     },
     JWT_SECRET,

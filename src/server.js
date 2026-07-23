@@ -80,9 +80,9 @@ app.get("/api/database", async (req, res) => {
 
 app.post("/api/auth/login", async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { name, password } = req.body;
 
-    const result = await loginUser(email, password);
+    const result = await loginUser(name, password);
 
     res.cookie("auth_token", result.token, {
       httpOnly: true,
@@ -173,6 +173,7 @@ app.get("/api/auth/me", authenticateToken, async (req, res) => {
       user: {
         id: user.id,
         email: user.email,
+        username: user.name,
         name: user.name,
         role: user.role,
       },
