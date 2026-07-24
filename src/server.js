@@ -7,6 +7,8 @@ const db = require("./database");
 const { loginUser } = require("./auth");
 const { authenticateToken } = require("./authMiddleware");
 
+const { startWork, stopWork, getCurrentWork, getTodayWork } = require("./work");
+
 const app = express();
 
 const PORT = process.env.PORT || 3000;
@@ -184,6 +186,108 @@ app.get("/api/auth/me", authenticateToken, async (req, res) => {
     res.status(500).json({
       status: "ERROR",
       message: "Błąd serwera",
+    });
+  }
+});
+
+/*
+ * ROZPOCZĘCIE PRACY
+ */
+
+app.post("/api/work/start", authenticateToken, async (req, res) => {
+  try {
+    const session = await startWork(req.user.userId);
+
+    res.status(201).json({
+      status: "OK",
+      message: "Praca została rozpoczęta",
+      session,
+    });
+  } catch (error) {
+    console.error("Start work error:", error);
+
+    res.status(400).json({
+      status: "ERROR",
+      message: error.message,
+    });
+  }
+});
+
+/*
+ * ZAKOŃCZENIE PRACY
+ */
+
+app.post("/api/work/stop", authenticateToken, async (req, res) => {
+  try {
+    const session = await stopWork(req.user.userId);
+
+    res.json({
+      status: "OK",
+      message: "Praca została zakończona",
+      session,
+    });
+  } catch (error) {
+    console.error("Stop work error:", error);
+
+    res.status(400).json({
+      status: "ERROR",
+      message: error.message,
+    });
+  }
+});
+
+/*
+ * AKTUALNA SESJA PRACY
+ */
+
+app.get("/api/work/current", authenticateToken, async (req, res) => {
+  try {
+    const session = await getCurrentWork(req.user.userId);
+
+    res.json({
+      status: "OK",
+
+      working: session !== null,
+
+      session,
+    });
+  } catch (error) {
+    console.error("Current work error:", error);
+
+    res.status(500).json({
+      status: "ERROR",
+      message: "Błąd pobierania statusu pracy",
+    });
+  }
+});
+
+/*
+ * DZISIEJSZE SESJE PRACY
+ */
+
+app.get("/api/work/today", authenticateToken, async (req, res) => {
+  try {
+    const sessions = await getTodayWork(req.user.userId);
+
+    const totalSeconds = sessions.reduce((total, session) => {
+      return total + Number(session.duration_seconds || 0);
+    }, 0);
+
+    res.json({
+      status: "OK",
+
+      date: new Date().toISOString().split("T")[0],
+
+      sessions,
+
+      total_seconds: totalSeconds,
+    });
+  } catch (error) {
+    console.error("Today work error:", error);
+
+    res.status(500).json({
+      status: "ERROR",
+      message: "Błąd pobierania sesji pracy",
     });
   }
 });
