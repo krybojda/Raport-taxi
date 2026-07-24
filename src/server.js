@@ -292,6 +292,20 @@ app.get("/api/work/today", authenticateToken, async (req, res) => {
   }
 });
 
+app.post("/api/auth/logout", (req, res) => {
+  res.clearCookie("auth_token", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/",
+  });
+
+  res.json({
+    status: "OK",
+    message: "Wylogowano pomyślnie",
+  });
+});
+
 /*
  * START SERWERA
  */

@@ -6,14 +6,74 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
     <title>Dashboard - Taxi</title>
+
+    <link rel="stylesheet" href="/css/dashboard.css" />
   </head>
 
   <body>
-    <h1>Dashboard</h1>
+    <header class="topbar">
+      <div class="logo">Taxi System</div>
 
-    <p id="userInfo">Ładowanie...</p>
+      <div class="user-area">
+        <span id="userName"> Ładowanie... </span>
 
-    <button id="logoutButton">Wyloguj</button>
+        <button id="logoutButton" type="button">Wyloguj</button>
+      </div>
+    </header>
+
+    <main class="dashboard">
+      <h1>Dashboard</h1>
+
+      <!-- STATUS PRACY -->
+
+      <section class="card work-card">
+        <h2>Status pracy</h2>
+
+        <div id="workStatus" class="work-status">Sprawdzanie...</div>
+
+        <div id="currentSession" class="current-session"></div>
+
+        <button id="startWorkButton" class="button button-start" type="button">
+          Rozpocznij pracę
+        </button>
+
+        <button id="stopWorkButton" class="button button-stop" type="button" hidden>
+          Zakończ pracę
+        </button>
+
+        <div id="workMessage" class="message"></div>
+      </section>
+
+      <!-- DZISIEJSZE PODSUMOWANIE -->
+
+      <section class="card">
+        <h2>Dzisiejsza praca</h2>
+
+        <div class="today-summary">
+          <div class="summary-item">
+            <span class="summary-label"> Liczba sesji </span>
+
+            <strong id="sessionCount"> 0 </strong>
+          </div>
+
+          <div class="summary-item">
+            <span class="summary-label"> Łączny czas </span>
+
+            <strong id="totalWorkTime"> 0h 0min </strong>
+          </div>
+        </div>
+      </section>
+
+      <!-- SESJE -->
+
+      <section class="card">
+        <h2>Dzisiejsze sesje</h2>
+
+        <div id="sessionsList">
+          <p>Brak sesji pracy.</p>
+        </div>
+      </section>
+    </main>
 
     <script src="/js/dashboard.js"></script>
   </body>

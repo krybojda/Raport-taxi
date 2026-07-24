@@ -1,0 +1,227 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+
+  font-family: Arial, sans-serif;
+
+  background: #f4f6f8;
+
+  color: #222;
+}
+
+/*
+ * TOPBAR
+ */
+
+.topbar {
+  display: flex;
+
+  justify-content: space-between;
+
+  align-items: center;
+
+  padding: 15px 25px;
+
+  background: #1f2937;
+
+  color: white;
+}
+
+.logo {
+  font-size: 20px;
+
+  font-weight: bold;
+}
+
+.user-area {
+  display: flex;
+
+  align-items: center;
+
+  gap: 15px;
+}
+
+#logoutButton {
+  padding: 8px 15px;
+
+  border: none;
+
+  border-radius: 5px;
+
+  cursor: pointer;
+
+  background: #ef4444;
+
+  color: white;
+}
+
+/*
+ * DASHBOARD
+ */
+
+.dashboard {
+  width: 100%;
+
+  max-width: 900px;
+
+  margin: 30px auto;
+
+  padding: 0 20px;
+}
+
+.dashboard h1 {
+  margin-bottom: 25px;
+}
+
+/*
+ * KARTY
+ */
+
+.card {
+  background: white;
+
+  padding: 25px;
+
+  margin-bottom: 20px;
+
+  border-radius: 10px;
+
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.card h2 {
+  margin-top: 0;
+}
+
+/*
+ * STATUS PRACY
+ */
+
+.work-status {
+  font-size: 24px;
+
+  font-weight: bold;
+
+  margin: 20px 0;
+}
+
+.work-status.working {
+  color: #16a34a;
+}
+
+.work-status.not-working {
+  color: #6b7280;
+}
+
+.current-session {
+  margin-bottom: 20px;
+}
+
+/*
+ * PRZYCISKI
+ */
+
+.button {
+  padding: 12px 25px;
+
+  border: none;
+
+  border-radius: 6px;
+
+  color: white;
+
+  font-size: 16px;
+
+  cursor: pointer;
+}
+
+.button-start {
+  background: #16a34a;
+}
+
+.button-stop {
+  background: #dc2626;
+}
+
+/*
+ * KOMUNIKAT
+ */
+
+.message {
+  margin-top: 15px;
+}
+
+/*
+ * PODSUMOWANIE
+ */
+
+.today-summary {
+  display: flex;
+
+  gap: 50px;
+}
+
+.summary-item {
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 5px;
+}
+
+.summary-label {
+  color: #6b7280;
+}
+
+.summary-item strong {
+  font-size: 24px;
+}
+
+/*
+ * SESJE
+ */
+
+.session-row {
+  display: flex;
+
+  justify-content: space-between;
+
+  align-items: center;
+
+  padding: 15px 0;
+
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.session-duration {
+  font-weight: bold;
+}
+
+/*
+ * MOBILE
+ */
+
+@media (max-width: 600px) {
+  .topbar {
+    flex-direction: column;
+
+    gap: 10px;
+  }
+
+  .today-summary {
+    flex-direction: column;
+
+    gap: 20px;
+  }
+
+  .session-row {
+    flex-direction: column;
+
+    align-items: flex-start;
+
+    gap: 5px;
+  }
+}
