@@ -198,9 +198,31 @@ async function getTodayWork(userId) {
   return sessions;
 }
 
+async function getRecentWork(userId) {
+  const [sessions] = await db.execute(
+    `
+    SELECT
+      id,
+      start_time,
+      end_time,
+      duration_seconds,
+      duration_time
+    FROM work_sessions
+    WHERE user_id = ?
+      AND DATE(start_time) = CURDATE()
+    ORDER BY start_time DESC
+    LIMIT 5
+    `,
+    [userId],
+  );
+
+  return sessions;
+}
+
 module.exports = {
   startWork,
   stopWork,
   getCurrentWork,
   getTodayWork,
+  getRecentWork,
 };

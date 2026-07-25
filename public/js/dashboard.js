@@ -79,10 +79,7 @@ function updateLiveTimers() {
 
   const now = Date.now();
 
-  const currentSessionSeconds = Math.max(
-    0,
-    Math.floor((now - currentSessionStart) / 1000),
-  );
+  const currentSessionSeconds = Math.max(0, Math.floor((now - currentSessionStart) / 1000));
 
   const currentSessionElement = document.getElementById("currentSessionTime");
 
@@ -209,6 +206,7 @@ async function startWork() {
 
     await loadCurrentWork();
     await loadTodayWork();
+    await loadRecentWork();
     await loadCurrentCash();
     await loadTodayCash();
   } catch (error) {
@@ -244,6 +242,7 @@ async function stopWork() {
 
     await loadCurrentWork();
     await loadTodayWork();
+    await loadRecentWork();
     await loadCurrentCash();
     await loadTodayCash();
   } catch (error) {
@@ -282,13 +281,34 @@ async function loadTodayWork() {
     }, 0);
 
     if (!currentSessionStart) {
-      document.getElementById("totalWorkTime").textContent =
-        formatDurationLong(todayClosedSeconds);
+      document.getElementById("totalWorkTime").textContent = formatDurationLong(todayClosedSeconds);
     }
 
     renderSessions(sessions);
   } catch (error) {
     console.error("Load today work error:", error);
+  }
+}
+
+async function loadRecentWork() {
+  try {
+    const response = await fetch("/api/work/recent", {
+      credentials: "include",
+    });
+
+    if (response.status === 401) {
+      window.location.href = "/login.html";
+      return;
+    }
+
+    if (!response.ok) {
+      return;
+    }
+
+    const data = await response.json();
+    renderSessions(data.sessions || []);
+  } catch (error) {
+    console.error("Load recent work error:", error);
   }
 }
 
@@ -313,11 +333,7 @@ function renderSessions(sessions) {
           </div>
 
           <div class="session-duration">
-            ${
-              session.end_time
-                ? formatDuration(session.duration_seconds)
-                : "Aktualnie trwa"
-            }
+            ${session.end_time ? formatDuration(session.duration_seconds) : "Aktualnie trwa"}
           </div>
         </div>
       `;
@@ -436,11 +452,7 @@ function renderCashEntries(entries) {
             <strong>${sourceLabel}</strong>
             <span>•</span>
             <span>${formatDateTime(entry.created_at)}</span>
-            ${
-              entry.note
-                ? `<div class="cash-note">${entry.note}</div>`
-                : ""
-            }
+            ${entry.note ? `<div class="cash-note">${entry.note}</div>` : ""}
           </div>
 
           <div class="session-duration">
@@ -480,6 +492,7 @@ async function initDashboard() {
 
   await loadCurrentWork();
   await loadTodayWork();
+  await loadRecentWork();
   await loadCurrentCash();
   await loadTodayCash();
 }

@@ -7,7 +7,7 @@ const db = require("./database");
 const { loginUser } = require("./auth");
 const { authenticateToken } = require("./authMiddleware");
 
-const { startWork, stopWork, getCurrentWork, getTodayWork } = require("./work");
+const { startWork, stopWork, getCurrentWork, getTodayWork, getRecentWork } = require("./work");
 
 const { addCashEntry, getCurrentSessionCash, getTodayCash } = require("./cash");
 
@@ -290,6 +290,20 @@ app.get("/api/work/today", authenticateToken, async (req, res) => {
     res.status(500).json({
       status: "ERROR",
       message: "Błąd pobierania sesji pracy",
+    });
+  }
+});
+
+app.get("/api/work/recent", authenticateToken, async (req, res) => {
+  try {
+    const sessions = await getRecentWork(req.user.userId);
+
+    return res.json({ sessions });
+  } catch (error) {
+    console.error("Recent work error:", error);
+
+    return res.status(500).json({
+      message: "B??d pobierania ostatnich sesji pracy",
     });
   }
 });
