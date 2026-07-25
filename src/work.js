@@ -1,6 +1,5 @@
 const db = require("./database");
 
-
 /*
  * ROZPOCZĘCIE PRACY
  */
@@ -19,7 +18,7 @@ async function startWork(userId) {
       AND end_time IS NULL
     LIMIT 1
     `,
-    [userId]
+    [userId],
   );
 
   if (activeSessions.length > 0) {
@@ -42,7 +41,7 @@ async function startWork(userId) {
         NOW()
       )
     `,
-    [userId]
+    [userId],
   );
 
   /*
@@ -61,12 +60,11 @@ async function startWork(userId) {
     WHERE id = ?
     LIMIT 1
     `,
-    [result.insertId]
+    [result.insertId],
   );
 
   return sessions[0];
 }
-
 
 /*
  * ZAKOŃCZENIE PRACY
@@ -86,7 +84,7 @@ async function stopWork(userId) {
     ORDER BY start_time DESC
     LIMIT 1
     `,
-    [userId]
+    [userId],
   );
 
   if (activeSessions.length === 0) {
@@ -108,7 +106,7 @@ async function stopWork(userId) {
       duration_time = SEC_TO_TIME(TIMESTAMPDIFF(SECOND, start_time, NOW()))
     WHERE id = ?
     `,
-    [session.id]
+    [session.id],
   );
 
   /*
@@ -127,12 +125,11 @@ async function stopWork(userId) {
     WHERE id = ?
     LIMIT 1
     `,
-    [session.id]
+    [session.id],
   );
 
   return sessions[0];
 }
-
 
 /*
  * AKTUALNA SESJA
@@ -153,7 +150,7 @@ async function getCurrentWork(userId) {
     ORDER BY start_time DESC
     LIMIT 1
     `,
-    [userId]
+    [userId],
   );
 
   if (sessions.length === 0) {
@@ -162,7 +159,6 @@ async function getCurrentWork(userId) {
 
   return sessions[0];
 }
-
 
 /*
  * SESJE Z DZISIAJ
@@ -196,12 +192,11 @@ async function getTodayWork(userId) {
       AND DATE(start_time) = CURDATE()
     ORDER BY start_time ASC
     `,
-    [userId]
+    [userId],
   );
 
   return sessions;
 }
-
 
 module.exports = {
   startWork,

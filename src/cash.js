@@ -37,13 +37,7 @@ async function addCashEntry(userId, amount, source, note = null) {
         NULLIF(?, '')
       )
     `,
-    [
-      userId,
-      currentSession.id,
-      source,
-      numericAmount,
-      note,
-    ],
+    [userId, currentSession.id, source, numericAmount, note],
   );
 
   const [rows] = await db.execute(

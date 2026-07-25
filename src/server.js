@@ -9,12 +9,11 @@ const { authenticateToken } = require("./authMiddleware");
 
 const { startWork, stopWork, getCurrentWork, getTodayWork } = require("./work");
 
-const {addCashEntry,  getCurrentSessionCash,  getTodayCash} = require("./cash");
+const { addCashEntry, getCurrentSessionCash, getTodayCash } = require("./cash");
 
 const app = express();
 
 const PORT = process.env.PORT || 3000;
-
 
 /*
  * MIDDLEWARE
@@ -313,85 +312,68 @@ app.post("/api/auth/logout", (req, res) => {
  * Dodawnie wpisu gotówkowego
  */
 
-app.post(
-  "/api/cash/add",
-  authenticateToken,
-  async (req, res) => {
-    try {
-      const { amount, source, note } = req.body;
+app.post("/api/cash/add", authenticateToken, async (req, res) => {
+  try {
+    const { amount, source, note } = req.body;
 
-      const entry = await addCashEntry(
-        req.user.userId,
-        amount,
-        source,
-        note,
-      );
+    const entry = await addCashEntry(req.user.userId, amount, source, note);
 
-      res.status(201).json({
-        status: "OK",
-        message: "Gotówka została zapisana",
-        entry,
-      });
-    } catch (error) {
-      console.error("Cash add error:", error);
+    res.status(201).json({
+      status: "OK",
+      message: "Gotówka została zapisana",
+      entry,
+    });
+  } catch (error) {
+    console.error("Cash add error:", error);
 
-      res.status(400).json({
-        status: "ERROR",
-        message: error.message,
-      });
-    }
-  },
-);
+    res.status(400).json({
+      status: "ERROR",
+      message: error.message,
+    });
+  }
+});
 
 /*
-  * Aktywna sesja gotówkowa
-  */
-app.get(
-  "/api/cash/current-session",
-  authenticateToken,
-  async (req, res) => {
-    try {
-      const data = await getCurrentSessionCash(req.user.userId);
+ * Aktywna sesja gotówkowa
+ */
+app.get("/api/cash/current-session", authenticateToken, async (req, res) => {
+  try {
+    const data = await getCurrentSessionCash(req.user.userId);
 
-      res.json({
-        status: "OK",
-        ...data,
-      });
-    } catch (error) {
-      console.error("Cash current-session error:", error);
+    res.json({
+      status: "OK",
+      ...data,
+    });
+  } catch (error) {
+    console.error("Cash current-session error:", error);
 
-      res.status(500).json({
-        status: "ERROR",
-        message: "Błąd pobierania gotówki z aktywnej sesji",
-      });
-    }
-  },
-);
+    res.status(500).json({
+      status: "ERROR",
+      message: "Błąd pobierania gotówki z aktywnej sesji",
+    });
+  }
+});
 
 /*
-  * Dzisiaj gotówka
-  */
-app.get(
-  "/api/cash/today",
-  authenticateToken,
-  async (req, res) => {
-    try {
-      const data = await getTodayCash(req.user.userId);
+ * Dzisiaj gotówka
+ */
+app.get("/api/cash/today", authenticateToken, async (req, res) => {
+  try {
+    const data = await getTodayCash(req.user.userId);
 
-      res.json({
-        status: "OK",
-        ...data,
-      });
-    } catch (error) {
-      console.error("Cash today error:", error);
+    res.json({
+      status: "OK",
+      ...data,
+    });
+  } catch (error) {
+    console.error("Cash today error:", error);
 
-      res.status(500).json({
-        status: "ERROR",
-        message: "Błąd pobierania gotówki z dnia",
-      });
-    }
-  },
-);
+    res.status(500).json({
+      status: "ERROR",
+      message: "Błąd pobierania gotówki z dnia",
+    });
+  }
+});
 
 /*
  * START SERWERA
