@@ -7,7 +7,6 @@ let currentSessionStart = null;
 let todayClosedSeconds = 0;
 
 /*
-
 * FORMATOWANIE CZASU
 *
 * Wynik:
@@ -34,20 +33,17 @@ seconds % 60;
 return [
 String(hours).padStart(2, "0"),
 
-```
 String(minutes).padStart(2, "0"),
 
 String(
   remainingSeconds,
 ).padStart(2, "0"),
-```
 
 ].join(":");
 
 }
 
 /*
-
 * FORMATOWANIE CZASU
 *
 * Wynik:
@@ -73,7 +69,6 @@ return `${hours}h ${minutes}min`;
 }
 
 /*
-
 * FORMATOWANIE DATY I CZASU
   */
 
@@ -83,9 +78,7 @@ dateString,
 
 if (!dateString) {
 
-```
 return "-";
-```
 
 }
 
@@ -105,7 +98,6 @@ timeStyle: "short",
 }
 
 /*
-
 * URUCHOMIENIE LICZNIKA
 *
 * Licznik aktualnej sesji
@@ -135,7 +127,6 @@ updateLiveTimers,
 }
 
 /*
-
 * ZATRZYMANIE LICZNIKA
   */
 
@@ -145,13 +136,11 @@ if (
 liveTimer !== null
 ) {
 
-```
 clearInterval(
   liveTimer,
 );
 
 liveTimer = null;
-```
 
 }
 
@@ -161,14 +150,12 @@ null;
 }
 
 /*
-
 * AKTUALIZACJA OBU LICZNIKÓW
   */
 
 function updateLiveTimers() {
 
 /*
-
 * Jeżeli nie ma aktywnej sesji,
 * nic nie robimy.
   */
@@ -177,9 +164,7 @@ if (
 !currentSessionStart
 ) {
 
-```
 return;
-```
 
 }
 
@@ -187,7 +172,6 @@ const now =
 Date.now();
 
 /*
-
 * Czas aktualnej sesji
   */
 
@@ -203,7 +187,6 @@ currentSessionStart
 );
 
 /*
-
 * Aktualna sesja
   */
 
@@ -216,17 +199,14 @@ if (
 currentSessionElement
 ) {
 
-```
 currentSessionElement.textContent =
   formatDurationLong(
     currentSessionSeconds,
   );
-```
 
 }
 
 /*
-
 * Łączny czas dzisiaj
 *
 * todayClosedSeconds =
@@ -249,19 +229,16 @@ if (
 totalElement
 ) {
 
-```
 totalElement.textContent =
   formatDurationLong(
     totalTodaySeconds,
   );
-```
 
 }
 
 }
 
 /*
-
 * POBIERANIE DANYCH UŻYTKOWNIKA
   */
 
@@ -269,7 +246,6 @@ async function loadUser() {
 
 try {
 
-```
 const response =
   await fetch(
     "/api/auth/me",
@@ -296,6 +272,7 @@ if (
 }
 
 
+
 const data =
   await response.json();
 
@@ -307,13 +284,11 @@ document.getElementById(
 
 
 return true;
-```
 
 } catch (
 error
 ) {
 
-```
 console.error(
   "Load user error:",
   error,
@@ -325,14 +300,12 @@ window.location.href =
 
 
 return false;
-```
 
 }
 
 }
 
 /*
-
 * SPRAWDZENIE AKTUALNEJ SESJI
   */
 
@@ -340,7 +313,6 @@ async function loadCurrentWork() {
 
 try {
 
-```
 const response =
   await fetch(
     "/api/work/current",
@@ -389,25 +361,21 @@ updateWorkStatus(
   data.working,
   data.session,
 );
-```
 
 } catch (
 error
 ) {
 
-```
 console.error(
   "Load current work error:",
   error,
 );
-```
 
 }
 
 }
 
 /*
-
 * AKTUALIZACJA STATUSU PRACY
   */
 
@@ -437,7 +405,6 @@ document.getElementById(
 );
 
 /*
-
 * KIEROWCA PRACUJE
   */
 
@@ -446,7 +413,6 @@ working &&
 session
 ) {
 
-```
 statusElement.textContent =
   "Pracujesz";
 
@@ -470,6 +436,7 @@ sessionElement.innerHTML = `
     </strong>
 
   </div>
+
 
 
   <div class="live-session-time">
@@ -502,18 +469,15 @@ stopButton.hidden =
 startLiveTimer(
   session.start_time,
 );
-```
 
 }
 
 /*
-
 * KIEROWCA NIE PRACUJE
   */
 
 else {
 
-```
 statusElement.textContent =
   "Nie pracujesz";
 
@@ -539,14 +503,12 @@ stopButton.hidden =
  */
 
 stopLiveTimer();
-```
 
 }
 
 }
 
 /*
-
 * ROZPOCZĘCIE PRACY
   */
 
@@ -563,7 +525,6 @@ document.getElementById(
 );
 
 /*
-
 * Blokujemy przycisk,
 * aby nie wysłać kilku żądań.
   */
@@ -576,7 +537,6 @@ message.textContent =
 
 try {
 
-```
 const response =
   await fetch(
     "/api/work/start",
@@ -622,13 +582,11 @@ await loadCurrentWork();
  */
 
 await loadTodayWork();
-```
 
 } catch (
 error
 ) {
 
-```
 console.error(
   "Start work error:",
   error,
@@ -637,21 +595,17 @@ console.error(
 
 message.textContent =
   error.message;
-```
 
 } finally {
 
-```
 startButton.disabled =
   false;
-```
 
 }
 
 }
 
 /*
-
 * ZAKOŃCZENIE PRACY
   */
 
@@ -668,7 +622,6 @@ document.getElementById(
 );
 
 /*
-
 * Blokujemy przycisk,
 * aby nie wysłać kilku żądań.
   */
@@ -681,7 +634,6 @@ message.textContent =
 
 try {
 
-```
 const response =
   await fetch(
     "/api/work/stop",
@@ -735,13 +687,11 @@ await loadCurrentWork();
  */
 
 await loadTodayWork();
-```
 
 } catch (
 error
 ) {
 
-```
 console.error(
   "Stop work error:",
   error,
@@ -750,21 +700,17 @@ console.error(
 
 message.textContent =
   error.message;
-```
 
 } finally {
 
-```
 stopButton.disabled =
   false;
-```
 
 }
 
 }
 
 /*
-
 * POBIERANIE DZISIEJSZYCH SESJI
   */
 
@@ -772,7 +718,6 @@ async function loadTodayWork() {
 
 try {
 
-```
 const response =
   await fetch(
     "/api/work/today",
@@ -898,25 +843,21 @@ if (
 renderSessions(
   sessions,
 );
-```
 
 } catch (
 error
 ) {
 
-```
 console.error(
   "Load today work error:",
   error,
 );
-```
 
 }
 
 }
 
 /*
-
 * WYŚWIETLENIE SESJI
   */
 
@@ -930,7 +871,6 @@ document.getElementById(
 );
 
 /*
-
 * Brak sesji
   */
 
@@ -938,7 +878,6 @@ if (
 sessions.length === 0
 ) {
 
-```
 container.innerHTML = `
 
   <p>
@@ -949,12 +888,10 @@ container.innerHTML = `
 
 
 return;
-```
 
 }
 
 /*
-
 * Tworzymy HTML
 * dla każdej sesji.
   */
@@ -966,7 +903,6 @@ sessions
 session,
 ) => {
 
-```
       return `
 
         <div
@@ -997,7 +933,6 @@ session,
                   ? formatDateTime(
                       session.end_time,
                     )
-
                   : "Trwa"
               }
 
@@ -1029,12 +964,12 @@ session,
     },
   )
   .join("");
-```
+
+
 
 }
 
 /*
-
 * WYLOGOWANIE
   */
 
@@ -1042,7 +977,6 @@ async function logout() {
 
 try {
 
-```
 await fetch(
   "/api/auth/logout",
   {
@@ -1052,23 +986,19 @@ await fetch(
       "include",
   },
 );
-```
 
 } catch (
 error
 ) {
 
-```
 console.error(
   "Logout error:",
   error,
 );
-```
 
 }
 
 /*
-
 * Niezależnie od odpowiedzi
 * przekierowujemy na login.
   */
@@ -1079,7 +1009,6 @@ window.location.href =
 }
 
 /*
-
 * EVENT:
 * ROZPOCZĘCIE PRACY
   */
@@ -1094,7 +1023,6 @@ startWork,
 );
 
 /*
-
 * EVENT:
 * ZAKOŃCZENIE PRACY
   */
@@ -1109,7 +1037,6 @@ stopWork,
 );
 
 /*
-
 * EVENT:
 * WYLOGOWANIE
   */
@@ -1124,14 +1051,12 @@ logout,
 );
 
 /*
-
 * START DASHBOARDU
   */
 
 async function initDashboard() {
 
 /*
-
 * Najpierw sprawdzamy,
 * czy użytkownik jest zalogowany.
   */
@@ -1143,21 +1068,17 @@ if (
 !authenticated
 ) {
 
-```
 return;
-```
 
 }
 
 /*
-
 * Pobieramy aktualną sesję.
   */
 
 await loadCurrentWork();
 
 /*
-
 * Pobieramy dzisiejsze sesje.
   */
 
@@ -1166,7 +1087,6 @@ await loadTodayWork();
 }
 
 /*
-
 * URUCHOMIENIE
   */
 

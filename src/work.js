@@ -1,15 +1,14 @@
 const db = require("./database");
 
+
 /*
  * ROZPOCZĘCIE PRACY
  */
-
 async function startWork(userId) {
   /*
    * Sprawdzamy, czy kierowca
    * nie ma już aktywnej sesji.
    */
-
   const [activeSessions] = await db.execute(
     `
     SELECT
@@ -20,7 +19,7 @@ async function startWork(userId) {
       AND end_time IS NULL
     LIMIT 1
     `,
-    [userId],
+    [userId]
   );
 
   if (activeSessions.length > 0) {
@@ -30,7 +29,6 @@ async function startWork(userId) {
   /*
    * Tworzymy nową sesję.
    */
-
   const [result] = await db.execute(
     `
     INSERT INTO work_sessions
@@ -44,39 +42,39 @@ async function startWork(userId) {
         NOW()
       )
     `,
-    [userId],
+    [userId]
   );
 
   /*
    * Pobieramy utworzoną sesję.
    */
-
   const [sessions] = await db.execute(
     `
     SELECT
       id,
       user_id,
       start_time,
-      end_time
+      end_time,
+      duration_seconds,
+      duration_time
     FROM work_sessions
     WHERE id = ?
     LIMIT 1
     `,
-    [result.insertId],
+    [result.insertId]
   );
 
   return sessions[0];
 }
 
+
 /*
  * ZAKOŃCZENIE PRACY
  */
-
 async function stopWork(userId) {
   /*
    * Szukamy aktywnej sesji.
    */
-
   const [activeSessions] = await db.execute(
     `
     SELECT
@@ -88,7 +86,7 @@ async function stopWork(userId) {
     ORDER BY start_time DESC
     LIMIT 1
     `,
-    [userId],
+    [userId]
   );
 
   if (activeSessions.length === 0) {
@@ -98,22 +96,24 @@ async function stopWork(userId) {
   const session = activeSessions[0];
 
   /*
-   * Kończymy aktywną sesję.
+   * Kończymy aktywną sesję
+   * i zapisujemy czas pracy w bazie.
    */
-
   await db.execute(
     `
     UPDATE work_sessions
-    SET end_time = NOW()
+    SET
+      end_time = NOW(),
+      duration_seconds = TIMESTAMPDIFF(SECOND, start_time, NOW()),
+      duration_time = SEC_TO_TIME(TIMESTAMPDIFF(SECOND, start_time, NOW()))
     WHERE id = ?
     `,
-    [session.id],
+    [session.id]
   );
 
   /*
    * Pobieramy zakończoną sesję.
    */
-
   const [sessions] = await db.execute(
     `
     SELECT
@@ -121,25 +121,22 @@ async function stopWork(userId) {
       user_id,
       start_time,
       end_time,
-      TIMESTAMPDIFF(
-        SECOND,
-        start_time,
-        end_time
-      ) AS duration_seconds
+      duration_seconds,
+      duration_time
     FROM work_sessions
     WHERE id = ?
     LIMIT 1
     `,
-    [session.id],
+    [session.id]
   );
 
   return sessions[0];
 }
 
+
 /*
  * AKTUALNA SESJA
  */
-
 async function getCurrentWork(userId) {
   const [sessions] = await db.execute(
     `
@@ -147,14 +144,16 @@ async function getCurrentWork(userId) {
       id,
       user_id,
       start_time,
-      end_time
+      end_time,
+      duration_seconds,
+      duration_time
     FROM work_sessions
     WHERE user_id = ?
       AND end_time IS NULL
     ORDER BY start_time DESC
     LIMIT 1
     `,
-    [userId],
+    [userId]
   );
 
   if (sessions.length === 0) {
@@ -164,10 +163,10 @@ async function getCurrentWork(userId) {
   return sessions[0];
 }
 
+
 /*
  * SESJE Z DZISIAJ
  */
-
 async function getTodayWork(userId) {
   const [sessions] = await db.execute(
     `
@@ -175,6 +174,8 @@ async function getTodayWork(userId) {
       id,
       start_time,
       end_time,
+      duration_seconds,
+      duration_time,
 
       CASE
         WHEN end_time IS NOT NULL
@@ -183,28 +184,24 @@ async function getTodayWork(userId) {
           start_time,
           end_time
         )
-
         ELSE TIMESTAMPDIFF(
           SECOND,
           start_time,
           NOW()
         )
-      END AS duration_seconds
+      END AS duration_seconds_live
 
     FROM work_sessions
-
     WHERE user_id = ?
-
-      AND DATE(start_time)
-        = CURDATE()
-
+      AND DATE(start_time) = CURDATE()
     ORDER BY start_time ASC
     `,
-    [userId],
+    [userId]
   );
 
   return sessions;
 }
+
 
 module.exports = {
   startWork,
