@@ -1,56 +1,42 @@
 let currentSession = null;
-
 let liveTimer = null;
-
 let currentSessionStart = null;
-
 let todayClosedSeconds = 0;
-
-/*
- * FORMATOWANIE CZASU
- *
- * Wynik:
- * 02:15:37
- */
+let currentCashTotals = {
+  uber: 0,
+  bolt: 0,
+  total: 0,
+};
 
 function formatDurationLong(seconds) {
   seconds = Number(seconds || 0);
 
   const hours = Math.floor(seconds / 3600);
-
   const minutes = Math.floor((seconds % 3600) / 60);
-
   const remainingSeconds = seconds % 60;
 
   return [
     String(hours).padStart(2, "0"),
-
     String(minutes).padStart(2, "0"),
-
     String(remainingSeconds).padStart(2, "0"),
   ].join(":");
 }
-
-/*
- * FORMATOWANIE CZASU
- *
- * Wynik:
- * 2h 15min
- */
 
 function formatDuration(seconds) {
   seconds = Number(seconds || 0);
 
   const hours = Math.floor(seconds / 3600);
-
   const minutes = Math.floor((seconds % 3600) / 60);
 
   return `${hours}h ${minutes}min`;
 }
 
-/*
- * FORMATOWANIE DATY I CZASU
- */
+function formatMoney(value) {
+  return new Intl.NumberFormat("pl-PL", {
+    style: "currency",
+    currency: "PLN",
+  }).format(Number(value || 0));
+}
 
 function formatDateTime(dateString) {
   if (!dateString) {
@@ -65,14 +51,6 @@ function formatDateTime(dateString) {
   });
 }
 
-/*
- * URUCHOMIENIE LICZNIKA
- *
- * Licznik aktualnej sesji
- * i łącznego czasu pracy
- * aktualizuje się co sekundę.
- */
-
 function startLiveTimer(startTime) {
   stopLiveTimer();
 
@@ -80,64 +58,37 @@ function startLiveTimer(startTime) {
 
   updateLiveTimers();
 
-  liveTimer = setInterval(updateLiveTimers, 1000);
+  liveTimer = setInterval(() => {
+    updateLiveTimers();
+  }, 1000);
 }
-
-/*
- * ZATRZYMANIE LICZNIKA
- */
 
 function stopLiveTimer() {
   if (liveTimer !== null) {
     clearInterval(liveTimer);
-
     liveTimer = null;
   }
 
   currentSessionStart = null;
 }
 
-/*
- * AKTUALIZACJA OBU LICZNIKÓW
- */
-
 function updateLiveTimers() {
-  /*
-   * Jeżeli nie ma aktywnej sesji,
-   * nic nie robimy.
-   */
-
   if (!currentSessionStart) {
     return;
   }
 
   const now = Date.now();
 
-  /*
-   * Czas aktualnej sesji
-   */
-
-  const currentSessionSeconds = Math.max(0, Math.floor((now - currentSessionStart) / 1000));
-
-  /*
-   * Aktualna sesja
-   */
+  const currentSessionSeconds = Math.max(
+    0,
+    Math.floor((now - currentSessionStart) / 1000),
+  );
 
   const currentSessionElement = document.getElementById("currentSessionTime");
 
   if (currentSessionElement) {
     currentSessionElement.textContent = formatDurationLong(currentSessionSeconds);
   }
-
-  /*
-   * Łączny czas dzisiaj
-   *
-   * todayClosedSeconds =
-   * czas zakończonych sesji
-   *
-   * currentSessionSeconds =
-   * aktualnie trwająca sesja
-   */
 
   const totalTodaySeconds = todayClosedSeconds + currentSessionSeconds;
 
@@ -148,23 +99,14 @@ function updateLiveTimers() {
   }
 }
 
-/*
- * POBIERANIE DANYCH UŻYTKOWNIKA
- */
-
 async function loadUser() {
   try {
     const response = await fetch("/api/auth/me", {
       credentials: "include",
     });
 
-    /*
-     * Brak logowania
-     */
-
     if (!response.ok) {
       window.location.href = "/login.html";
-
       return false;
     }
 
@@ -175,16 +117,10 @@ async function loadUser() {
     return true;
   } catch (error) {
     console.error("Load user error:", error);
-
     window.location.href = "/login.html";
-
     return false;
   }
 }
-
-/*
- * SPRAWDZENIE AKTUALNEJ SESJI
- */
 
 async function loadCurrentWork() {
   try {
@@ -192,14 +128,8 @@ async function loadCurrentWork() {
       credentials: "include",
     });
 
-    /*
-     * Jeżeli token jest nieważny
-     * lub użytkownik nie jest zalogowany.
-     */
-
     if (response.status === 401) {
       window.location.href = "/login.html";
-
       return;
     }
 
@@ -217,113 +147,55 @@ async function loadCurrentWork() {
   }
 }
 
-/*
- * AKTUALIZACJA STATUSU PRACY
- */
-
 function updateWorkStatus(working, session) {
   const statusElement = document.getElementById("workStatus");
-
   const sessionElement = document.getElementById("currentSession");
-
   const startButton = document.getElementById("startWorkButton");
-
   const stopButton = document.getElementById("stopWorkButton");
-
-  /*
-   * KIEROWCA PRACUJE
-   */
 
   if (working && session) {
     statusElement.textContent = "Pracujesz";
-
     statusElement.className = "work-status working";
 
     sessionElement.innerHTML = `
+      <div>
+        Rozpoczęto:
+        <strong>${formatDateTime(session.start_time)}</strong>
+      </div>
 
-  <div>
-
-    Rozpoczęto:
-
-    <strong>
-
-      ${formatDateTime(session.start_time)}
-
-    </strong>
-
-  </div>
-
-
-
-  <div class="live-session-time">
-
-    Aktualna sesja:
-
-    <strong
-      id="currentSessionTime"
-    >
-      00:00:00
-    </strong>
-
-  </div>
-
-`;
+      <div class="live-session-time">
+        Aktualna sesja:
+        <strong id="currentSessionTime">00:00:00</strong>
+      </div>
+    `;
 
     startButton.hidden = true;
-
     stopButton.hidden = false;
 
-    /*
-     * Uruchamiamy licznik.
-     */
-
     startLiveTimer(session.start_time);
-  }
-
-  /*
-   * KIEROWCA NIE PRACUJE
-   */
-  else {
+  } else {
     statusElement.textContent = "Nie pracujesz";
-
     statusElement.className = "work-status not-working";
 
     sessionElement.innerHTML = "";
 
     startButton.hidden = false;
-
     stopButton.hidden = true;
-
-    /*
-     * Zatrzymujemy licznik.
-     */
 
     stopLiveTimer();
   }
 }
 
-/*
- * ROZPOCZĘCIE PRACY
- */
-
 async function startWork() {
   const message = document.getElementById("workMessage");
-
   const startButton = document.getElementById("startWorkButton");
 
-  /*
-   * Blokujemy przycisk,
-   * aby nie wysłać kilku żądań.
-   */
-
   startButton.disabled = true;
-
   message.textContent = "Rozpoczynanie pracy...";
 
   try {
     const response = await fetch("/api/work/start", {
       method: "POST",
-
       credentials: "include",
     });
 
@@ -335,49 +207,28 @@ async function startWork() {
 
     message.textContent = data.message;
 
-    /*
-     * Pobieramy aktualną sesję.
-     */
-
     await loadCurrentWork();
-
-    /*
-     * Aktualizujemy dzisiejsze
-     * podsumowanie.
-     */
-
     await loadTodayWork();
+    await loadCurrentCash();
+    await loadTodayCash();
   } catch (error) {
     console.error("Start work error:", error);
-
     message.textContent = error.message;
   } finally {
     startButton.disabled = false;
   }
 }
 
-/*
- * ZAKOŃCZENIE PRACY
- */
-
 async function stopWork() {
   const message = document.getElementById("workMessage");
-
   const stopButton = document.getElementById("stopWorkButton");
 
-  /*
-   * Blokujemy przycisk,
-   * aby nie wysłać kilku żądań.
-   */
-
   stopButton.disabled = true;
-
   message.textContent = "Kończenie pracy...";
 
   try {
     const response = await fetch("/api/work/stop", {
       method: "POST",
-
       credentials: "include",
     });
 
@@ -387,39 +238,21 @@ async function stopWork() {
       throw new Error(data.message || "Nie udało się zakończyć pracy");
     }
 
-    /*
-     * Zatrzymujemy licznik
-     * natychmiast po zakończeniu.
-     */
-
     stopLiveTimer();
 
     message.textContent = data.message;
 
-    /*
-     * Pobieramy aktualny status.
-     */
-
     await loadCurrentWork();
-
-    /*
-     * Pobieramy aktualne
-     * podsumowanie dnia.
-     */
-
     await loadTodayWork();
+    await loadCurrentCash();
+    await loadTodayCash();
   } catch (error) {
     console.error("Stop work error:", error);
-
     message.textContent = error.message;
   } finally {
     stopButton.disabled = false;
   }
 }
-
-/*
- * POBIERANIE DZISIEJSZYCH SESJI
- */
 
 async function loadTodayWork() {
   try {
@@ -429,7 +262,6 @@ async function loadTodayWork() {
 
     if (response.status === 401) {
       window.location.href = "/login.html";
-
       return;
     }
 
@@ -438,56 +270,21 @@ async function loadTodayWork() {
     }
 
     const data = await response.json();
-
     const sessions = data.sessions || [];
-
-    /*
-     * Liczba sesji
-     */
 
     document.getElementById("sessionCount").textContent = sessions.length;
 
-    /*
-     * Obliczamy czas wszystkich
-     * zakończonych sesji.
-     *
-     * Aktywna sesja nie jest tutaj
-     * dodawana, ponieważ jej czas
-     * jest liczony na żywo.
-     */
-
     todayClosedSeconds = sessions.reduce((total, session) => {
-      /*
-       * Sesja zakończona
-       */
-
       if (session.end_time) {
         return total + Number(session.duration_seconds || 0);
       }
-
-      /*
-       * Sesja aktywna
-       *
-       * Jej czas obsługuje
-       * live timer.
-       */
-
       return total;
     }, 0);
 
-    /*
-     * Jeżeli nie ma aktywnej sesji,
-     * wyświetlamy całkowity czas
-     * zakończonych sesji.
-     */
-
     if (!currentSessionStart) {
-      document.getElementById("totalWorkTime").textContent = formatDurationLong(todayClosedSeconds);
+      document.getElementById("totalWorkTime").textContent =
+        formatDurationLong(todayClosedSeconds);
     }
-
-    /*
-     * Wyświetlamy listę sesji.
-     */
 
     renderSessions(sessions);
   } catch (error) {
@@ -495,155 +292,196 @@ async function loadTodayWork() {
   }
 }
 
-/*
- * WYŚWIETLENIE SESJI
- */
-
 function renderSessions(sessions) {
   const container = document.getElementById("sessionsList");
 
-  /*
-   * Brak sesji
-   */
-
   if (sessions.length === 0) {
-    container.innerHTML = `
-
-  <p>
-    Brak sesji pracy.
-  </p>
-
-`;
-
+    container.innerHTML = `<p>Brak sesji pracy.</p>`;
     return;
   }
-
-  /*
-   * Tworzymy HTML
-   * dla każdej sesji.
-   */
 
   container.innerHTML = sessions
     .map((session) => {
       return `
-
-        <div
-          class="session-row"
-        >
-
+        <div class="session-row">
           <div>
-
+            <strong>${formatDateTime(session.start_time)}</strong>
+            <span>→</span>
             <strong>
-
-              ${formatDateTime(session.start_time)}
-
-            </strong>
-
-
-            <span>
-              →
-            </span>
-
-
-            <strong>
-
               ${session.end_time ? formatDateTime(session.end_time) : "Trwa"}
-
             </strong>
-
           </div>
 
-
-          <div
-            class="session-duration"
-          >
-
-            ${session.end_time ? formatDuration(session.duration_seconds) : "Aktualnie trwa"}
-
+          <div class="session-duration">
+            ${
+              session.end_time
+                ? formatDuration(session.duration_seconds)
+                : "Aktualnie trwa"
+            }
           </div>
-
         </div>
-
       `;
     })
     .join("");
 }
 
-/*
- * WYLOGOWANIE
- */
+async function addCash(source) {
+  const amountRaw = prompt(`Podaj kwotę dla ${source === "uber" ? "Uber" : "Bolt"} (np. 45.50):`);
+  if (amountRaw === null) {
+    return;
+  }
+
+  const amount = Number(String(amountRaw).replace(",", "."));
+  if (!Number.isFinite(amount) || amount <= 0) {
+    alert("Podaj poprawną kwotę większą od zera.");
+    return;
+  }
+
+  const note = prompt("Notatka (opcjonalnie):") || "";
+
+  const message = document.getElementById("cashMessage");
+  message.textContent = "Zapisywanie gotówki...";
+
+  try {
+    const response = await fetch("/api/cash/add", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+      body: JSON.stringify({
+        amount,
+        source,
+        note,
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || "Nie udało się zapisać gotówki");
+    }
+
+    message.textContent = data.message;
+
+    await loadCurrentCash();
+    await loadTodayCash();
+  } catch (error) {
+    console.error("Add cash error:", error);
+    message.textContent = error.message;
+  }
+}
+
+async function loadCurrentCash() {
+  try {
+    const response = await fetch("/api/cash/current-session", {
+      credentials: "include",
+    });
+
+    if (!response.ok) {
+      return;
+    }
+
+    const data = await response.json();
+
+    currentCashTotals = data.totals || { uber: 0, bolt: 0, total: 0 };
+
+    document.getElementById("uberToday").textContent = formatMoney(currentCashTotals.uber);
+    document.getElementById("boltToday").textContent = formatMoney(currentCashTotals.bolt);
+    document.getElementById("cashToday").textContent = formatMoney(currentCashTotals.total);
+
+    renderCashEntries(data.entries || []);
+  } catch (error) {
+    console.error("Load current cash error:", error);
+  }
+}
+
+async function loadTodayCash() {
+  try {
+    const response = await fetch("/api/cash/today", {
+      credentials: "include",
+    });
+
+    if (!response.ok) {
+      return;
+    }
+
+    const data = await response.json();
+
+    const totals = data.totals || { uber: 0, bolt: 0, total: 0 };
+
+    document.getElementById("cashToday").textContent = formatMoney(totals.total);
+    document.getElementById("uberToday").textContent = formatMoney(totals.uber);
+    document.getElementById("boltToday").textContent = formatMoney(totals.bolt);
+  } catch (error) {
+    console.error("Load today cash error:", error);
+  }
+}
+
+function renderCashEntries(entries) {
+  const container = document.getElementById("cashEntriesList");
+
+  if (!entries || entries.length === 0) {
+    container.innerHTML = `<p>Brak wpisów.</p>`;
+    return;
+  }
+
+  container.innerHTML = entries
+    .map((entry) => {
+      const sourceLabel = entry.source === "uber" ? "Uber" : "Bolt";
+
+      return `
+        <div class="session-row">
+          <div>
+            <strong>${sourceLabel}</strong>
+            <span>•</span>
+            <span>${formatDateTime(entry.created_at)}</span>
+            ${
+              entry.note
+                ? `<div class="cash-note">${entry.note}</div>`
+                : ""
+            }
+          </div>
+
+          <div class="session-duration">
+            ${formatMoney(entry.amount)}
+          </div>
+        </div>
+      `;
+    })
+    .join("");
+}
 
 async function logout() {
   try {
     await fetch("/api/auth/logout", {
       method: "POST",
-
       credentials: "include",
     });
   } catch (error) {
     console.error("Logout error:", error);
   }
 
-  /*
-   * Niezależnie od odpowiedzi
-   * przekierowujemy na login.
-   */
-
   window.location.href = "/login.html";
 }
 
-/*
- * EVENT:
- * ROZPOCZĘCIE PRACY
- */
-
 document.getElementById("startWorkButton").addEventListener("click", startWork);
-
-/*
- * EVENT:
- * ZAKOŃCZENIE PRACY
- */
-
 document.getElementById("stopWorkButton").addEventListener("click", stopWork);
-
-/*
- * EVENT:
- * WYLOGOWANIE
- */
-
 document.getElementById("logoutButton").addEventListener("click", logout);
-
-/*
- * START DASHBOARDU
- */
+document.getElementById("addUberButton").addEventListener("click", () => addCash("uber"));
+document.getElementById("addBoltButton").addEventListener("click", () => addCash("bolt"));
 
 async function initDashboard() {
-  /*
-   * Najpierw sprawdzamy,
-   * czy użytkownik jest zalogowany.
-   */
-
   const authenticated = await loadUser();
 
   if (!authenticated) {
     return;
   }
 
-  /*
-   * Pobieramy aktualną sesję.
-   */
-
   await loadCurrentWork();
-
-  /*
-   * Pobieramy dzisiejsze sesje.
-   */
-
   await loadTodayWork();
+  await loadCurrentCash();
+  await loadTodayCash();
 }
-
-/*
- * URUCHOMIENIE
- */
 
 initDashboard();

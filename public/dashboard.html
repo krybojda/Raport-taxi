@@ -1,80 +1,109 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="pl">
-  <head>
-    <meta charset="UTF-8" />
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard - Taxi</title>
+  <link rel="stylesheet" href="/css/dashboard.css">
+</head>
+<body>
 
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <header class="topbar">
+    <div class="logo">Taxi System</div>
 
-    <title>Dashboard - Taxi</title>
+    <div class="user-area">
+      <span id="userName">Ładowanie...</span>
+      <button id="logoutButton" type="button">Wyloguj</button>
+    </div>
+  </header>
 
-    <link rel="stylesheet" href="/css/dashboard.css" />
-  </head>
+  <main class="dashboard">
+    <h1>Dashboard</h1>
 
-  <body>
-    <header class="topbar">
-      <div class="logo">Taxi System</div>
+    <section class="card work-card">
+      <h2>Status pracy</h2>
 
-      <div class="user-area">
-        <span id="userName"> Ładowanie... </span>
-
-        <button id="logoutButton" type="button">Wyloguj</button>
+      <div id="workStatus" class="work-status">
+        Sprawdzanie...
       </div>
-    </header>
 
-    <main class="dashboard">
-      <h1>Dashboard</h1>
+      <div id="currentSession" class="current-session"></div>
 
-      <!-- STATUS PRACY -->
+      <button id="startWorkButton" class="button button-start" type="button">
+        Rozpocznij pracę
+      </button>
 
-      <section class="card work-card">
-        <h2>Status pracy</h2>
+      <button id="stopWorkButton" class="button button-stop" type="button" hidden>
+        Zakończ pracę
+      </button>
 
-        <div id="workStatus" class="work-status">Sprawdzanie...</div>
+      <div id="workMessage" class="message"></div>
+    </section>
 
-        <div id="currentSession" class="current-session"></div>
+    <section class="card">
+      <h2>Gotówka</h2>
 
-        <button id="startWorkButton" class="button button-start" type="button">
-          Rozpocznij pracę
+      <div class="cash-summary">
+        <div class="summary-item">
+          <span class="summary-label">Uber dziś</span>
+          <strong id="uberToday">0,00 zł</strong>
+        </div>
+
+        <div class="summary-item">
+          <span class="summary-label">Bolt dziś</span>
+          <strong id="boltToday">0,00 zł</strong>
+        </div>
+
+        <div class="summary-item">
+          <span class="summary-label">Razem dziś</span>
+          <strong id="cashToday">0,00 zł</strong>
+        </div>
+      </div>
+
+      <div class="cash-actions">
+        <button id="addUberButton" class="button button-uber" type="button">
+          Dodaj Uber
         </button>
 
-        <button id="stopWorkButton" class="button button-stop" type="button" hidden>
-          Zakończ pracę
+        <button id="addBoltButton" class="button button-bolt" type="button">
+          Dodaj Bolt
         </button>
+      </div>
 
-        <div id="workMessage" class="message"></div>
-      </section>
+      <div id="cashMessage" class="message"></div>
+    </section>
 
-      <!-- DZISIEJSZE PODSUMOWANIE -->
+    <section class="card">
+      <h2>Dzisiejsza praca</h2>
 
-      <section class="card">
-        <h2>Dzisiejsza praca</h2>
-
-        <div class="today-summary">
-          <div class="summary-item">
-            <span class="summary-label"> Liczba sesji </span>
-
-            <strong id="sessionCount"> 0 </strong>
-          </div>
-
-          <div class="summary-item">
-            <span class="summary-label"> Łączny czas </span>
-
-            <strong id="totalWorkTime"> 0h 0min </strong>
-          </div>
+      <div class="today-summary">
+        <div class="summary-item">
+          <span class="summary-label">Liczba sesji</span>
+          <strong id="sessionCount">0</strong>
         </div>
-      </section>
 
-      <!-- SESJE -->
-
-      <section class="card">
-        <h2>Dzisiejsze sesje</h2>
-
-        <div id="sessionsList">
-          <p>Brak sesji pracy.</p>
+        <div class="summary-item">
+          <span class="summary-label">Łączny czas</span>
+          <strong id="totalWorkTime">00:00:00</strong>
         </div>
-      </section>
-    </main>
+      </div>
+    </section>
 
-    <script src="/js/dashboard.js"></script>
-  </body>
+    <section class="card">
+      <h2>Dzisiejsze sesje</h2>
+      <div id="sessionsList">
+        <p>Brak sesji pracy.</p>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Wpisy gotówki z aktywnej sesji</h2>
+      <div id="cashEntriesList">
+        <p>Brak wpisów.</p>
+      </div>
+    </section>
+  </main>
+
+  <script src="/js/dashboard.js"></script>
+</body>
 </html>
