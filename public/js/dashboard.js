@@ -353,8 +353,6 @@ async function addCash(source) {
     return;
   }
 
-  const note = prompt("Notatka (opcjonalnie):") || "";
-
   const message = document.getElementById("cashMessage");
   message.textContent = "Zapisywanie gotówki...";
 
@@ -368,7 +366,6 @@ async function addCash(source) {
       body: JSON.stringify({
         amount,
         source,
-        note,
       }),
     });
 
