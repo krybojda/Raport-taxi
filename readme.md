@@ -1,6 +1,6 @@
 # Taxi
 
-Prosty system zarządzania pracą kierowcy taxi.
+Prosty system do zarządzania pracą kierowcy taxi.
 
 ## Zawartość katalogu
 
@@ -22,19 +22,36 @@ Prosty system zarządzania pracą kierowcy taxi.
 
 ## Backend
 
-Aplikacja działa na Node.js i używa:
+Aplikacja jest oparta na Node.js i korzysta z:
 
 - `express`
 - `mysql2`
 - `dotenv`
 - `cors`
 
-Plik wejściowy to `src/server.js`.
+Plikiem wejściowym jest `src/server.js`.
 Serwer nasłuchuje na porcie `3000` i serwuje zawartość katalogu `public`.
 
 Dostępne endpointy:
 
 - `GET /api/test-db` - sprawdza połączenie z bazą MySQL
+
+## Dashboard
+
+Na dashboardzie są widoczne osobno:
+
+- gotówkę z Uber i Bolta dla aktywnej sesji i dla dnia,
+- kwotę z aplikacji rozbitą na Uber i Bolt,
+- sumę kwot z aplikacji jako wartość dzienną.
+
+Kwoty z aplikacji są zapisywane osobno dla Uber i Bolta, ale w podsumowaniach są liczone łącznie jako dzienna kwota z aplikacji.
+
+## Dzień biznesowy
+
+System liczy dzień biznesowy od godziny 4:00 do 3:59 następnego dnia. Oznacza to, że:
+
+- wpisy z godziny 00:00-03:59 należą jeszcze do poprzedniego dnia,
+- wpisy od 04:00 należą już do nowego dnia biznesowego.
 
 ## Baza danych
 
@@ -47,7 +64,7 @@ Dane połączenia pobierane są z `.env`:
 
 ## Backup i restore bazy danych
 
-W projekcie są dwa skrypty w katalogu `mysql/`:
+W projekcie znajdują się dwa skrypty w katalogu `mysql/`:
 
 - `mysql/backup-db.sh` — tworzy zrzut bazy danych i szyfruje go do `mysql/backup/taxi.sql.gpg`
 - `mysql/restore-db.sh` — odszyfrowuje `mysql/backup/taxi.sql.gpg` i importuje dane z powrotem do MySQL
@@ -64,12 +81,14 @@ Przywracanie:
 2. Potem importuje ten plik do kontenera `taxi-mysql` przy pomocy polecenia `mysql`.
 3. Po zakończeniu plik `taxi.sql` jest usuwany.
 
-Wymagane zmienne w `.env`:
+W `.env` są wymagane następujące zmienne:
 
 - `MYSQL_DATABASE`
 - `MYSQL_USER`
 - `MYSQL_PASSWORD`
 - `BACKUP_MYSQL` — hasło do szyfrowania/odszyfrowania backupu
+
+Uwaga: aktualny schemat tabeli `work_sessions` zawiera pola `uber_app_amount` i `bolt_app_amount`, a `app_amount` przechowuje ich sumę dla zgodności wstecznej.
 
 Uwaga:
 
@@ -85,7 +104,7 @@ W repozytorium zdefiniowane są hooki Git, które wykonują:
 - `pre-commit` — przed commitem uruchamiany jest `./mysql/backup-db.sh`, aby zaszyfrować aktualny zrzut bazy
 - `post-merge` — po `git pull` uruchamiany jest `./mysql/restore-db.sh`, aby przywrócić bazę z zaszyfrowanego backupu
 
-Dzięki temu w repozytorium nie trafiają jawne dane z bazy, tylko zaszyfrowany backup, a lokalna baza jest synchronizowana po pobraniu zmian.
+Dzięki temu do repozytorium nie trafiają jawne dane z bazy, tylko zaszyfrowany backup, a lokalna baza jest synchronizowana po pobraniu zmian.
 
 Uwaga: restore może nadpisać dane lokalne, które nie zostały zbackupowane przez ostatni commit i znajdują się tylko w lokalnej bazie.
 
@@ -106,9 +125,9 @@ Backup obejmuje:
 1. `git clone <repozytorium>`
 2. `cd Raport-taxi`
 3. `cp .env.example .env`
-4. Uzupełnij `.env` o dane połączenia do MySQL i wartość `BACKUP_MYSQL`.
-5. Jeśli jeszcze nie masz zainstalowanych zależności Node.js, uruchom `npm install`.
-6. Skonfiguruj hooki Git i uprawnienia:
+4. W `.env` należy uzupełnić dane połączenia do MySQL i wartość `BACKUP_MYSQL`.
+5. Jeśli zależności Node.js nie są jeszcze zainstalowane, należy uruchomić `npm install`.
+6. Hooki Git i uprawnienia należy skonfigurować następująco:
 
 ```powershell
 git config core.hooksPath .githooks
@@ -116,15 +135,15 @@ chmod +x .githooks/*
 chmod +x mysql/*.sh
 ```
 
-Uwaga: `git config core.hooksPath .githooks` uruchom z katalogu głównego repozytorium `Raport-taxi` albo podaj pełną ścieżkę, bo hooki i skrypty MySQL liczą ścieżki względem repo, a nie względem bieżącego katalogu terminala.
+Uwaga: `git config core.hooksPath .githooks` należy uruchomić z katalogu głównego repozytorium `Raport-taxi` albo podać pełną ścieżkę, ponieważ hooki i skrypty MySQL liczą ścieżki względem repozytorium, a nie względem bieżącego katalogu terminala.
 
-7. Uruchom Docker Compose:
+7. Docker Compose należy uruchomić następująco:
 
 ```powershell
 docker compose up -d --build
 ```
 
-8. Aplikacja powinna być dostępna na `http://localhost:3000`.
+8. Aplikacja jest dostępna pod adresem `http://localhost:3000`.
 
 ## Skrypty npm
 
