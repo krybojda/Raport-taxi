@@ -2,10 +2,13 @@
 
 set -e
 
+HOOK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$HOOK_DIR/.." && pwd)"
+
 echo "Tworzenie backupu bazy danych..."
 
-./mysql/backup-db.sh
+"$REPO_ROOT/mysql/backup-db.sh"
 
-git add mysql/backup/taxi.sql.gpg
+git -C "$REPO_ROOT" add mysql/backup/taxi.sql.gpg
 
 echo "Backup dodany do commita."

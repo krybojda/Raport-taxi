@@ -2,8 +2,11 @@
 
 set -e
 
+HOOK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$HOOK_DIR/.." && pwd)"
+
 echo "Przywracanie bazy danych"
 
-./mysql/restore-db.sh
+"$REPO_ROOT/mysql/restore-db.sh"
 
 echo "Baza danych przywrócona."

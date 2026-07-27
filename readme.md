@@ -116,6 +116,8 @@ chmod +x .githooks/*
 chmod +x mysql/*.sh
 ```
 
+Uwaga: `git config core.hooksPath .githooks` uruchom z katalogu głównego repozytorium `Raport-taxi` albo podaj pełną ścieżkę, bo hooki i skrypty MySQL liczą ścieżki względem repo, a nie względem bieżącego katalogu terminala.
+
 7. Uruchom Docker Compose:
 
 ```powershell
