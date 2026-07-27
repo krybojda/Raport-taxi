@@ -296,3 +296,45 @@ body {
 .nav-link:hover {
   background: rgba(255, 255, 255, 0.16);
 }
+
+.period-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.period-card {
+  padding: 18px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background: #fafafa;
+}
+
+.period-card h3 {
+  margin: 0 0 12px;
+  font-size: 18px;
+}
+
+.period-value {
+  font-size: 28px;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.period-meta {
+  color: #6b7280;
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+
+.period-small {
+  color: #374151;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+@media (max-width: 900px) {
+  .period-grid {
+    grid-template-columns: 1fr;
+  }
+}

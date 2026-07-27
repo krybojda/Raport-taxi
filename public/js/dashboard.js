@@ -492,6 +492,53 @@ async function initDashboard() {
   await loadRecentWork();
   await loadCurrentCash();
   await loadTodayCash();
+  await loadDashboardSummary();
+}
+
+/**
+ * DASHBOARD
+ */
+
+async function loadDashboardSummary() {
+  try {
+    const response = await fetch("/api/dashboard/summary", {
+      credentials: "include",
+    });
+
+    if (response.status === 401) {
+      window.location.href = "/login.html";
+      return;
+    }
+
+    if (!response.ok) {
+      return;
+    }
+
+    const data = await response.json();
+    const summaries = data.summaries || {};
+
+    renderPeriodSummary("Day", summaries.day, "summaryDay");
+    renderPeriodSummary("Week", summaries.week, "summaryWeek");
+    renderPeriodSummary("Month", summaries.month, "summaryMonth");
+  } catch (error) {
+    console.error("Load dashboard summary error:", error);
+  }
+}
+
+function renderPeriodSummary(_label, summary, prefix) {
+  const safe = summary || {
+    session_count: 0,
+    work_seconds: 0,
+    cash: { total: 0 },
+    earnings: { total: 0 },
+    total_money: 0,
+  };
+
+  document.getElementById(`${prefix}Money`).textContent = formatMoney(safe.total_money || 0);
+  document.getElementById(`${prefix}Meta`).textContent =
+    `${safe.session_count || 0} sesji • ${formatDurationLong(safe.work_seconds || 0)}`;
+  document.getElementById(`${prefix}Details`).textContent =
+    `Gotówka: ${formatMoney(safe.cash?.total || 0)} • Zarobki: ${formatMoney(safe.earnings?.total || 0)}`;
 }
 
 initDashboard();

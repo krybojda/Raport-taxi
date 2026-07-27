@@ -13,6 +13,38 @@ const { addCashEntry, getCurrentSessionCash, getTodayCash } = require("./cash");
 
 const { getHistory } = require("./history");
 
+function getRangeStart(period) {
+  if (period === "day") {
+    return "CURDATE()";
+  }
+
+  if (period === "week") {
+    return "DATE_SUB(CURDATE(), INTERVAL WEEKDAY(CURDATE()) DAY)";
+  }
+
+  if (period === "month") {
+    return "DATE_FORMAT(CURDATE(), '%Y-%m-01')";
+  }
+
+  return "CURDATE()";
+}
+
+function getRangeEnd(period) {
+  if (period === "day") {
+    return "CURDATE()";
+  }
+
+  if (period === "week") {
+    return "DATE_ADD(DATE_SUB(CURDATE(), INTERVAL WEEKDAY(CURDATE()) DAY), INTERVAL 6 DAY)";
+  }
+
+  if (period === "month") {
+    return "LAST_DAY(CURDATE())";
+  }
+
+  return "CURDATE()";
+}
+
 const app = express();
 
 const PORT = process.env.PORT || 3000;
@@ -417,6 +449,107 @@ app.get(
       res.status(500).json({
         status: "ERROR",
         message: "Błąd pobierania historii",
+      });
+    }
+  },
+);
+
+/*
+ * Podsumowanie
+ */
+app.get(
+  "/api/dashboard/summary",
+  authenticateToken,
+  async (req, res) => {
+    try {
+      const periods = ["day", "week", "month"];
+      const summaries = {};
+
+      for (const period of periods) {
+        const startExpr = getRangeStart(period);
+        const endExpr = getRangeEnd(period);
+
+        const [sessionsRows] = await db.execute(
+          `
+          SELECT
+            COUNT(*) AS session_count,
+            COALESCE(SUM(
+              CASE
+                WHEN end_time IS NOT NULL THEN duration_seconds
+                ELSE TIMESTAMPDIFF(SECOND, start_time, NOW())
+              END
+            ), 0) AS work_seconds
+          FROM work_sessions
+          WHERE user_id = ?
+            AND DATE(start_time) BETWEEN ${startExpr} AND ${endExpr}
+          `,
+          [req.user.userId],
+        );
+
+        const [cashRows] = await db.execute(
+          `
+          SELECT
+            COALESCE(SUM(CASE WHEN source = 'uber' THEN amount ELSE 0 END), 0) AS uber_cash,
+            COALESCE(SUM(CASE WHEN source = 'bolt' THEN amount ELSE 0 END), 0) AS bolt_cash
+          FROM cash_entries
+          WHERE user_id = ?
+            AND DATE(created_at) BETWEEN ${startExpr} AND ${endExpr}
+          `,
+          [req.user.userId],
+        );
+
+        const [earningsRows] = await db.execute(
+          `
+          SELECT
+            COALESCE(SUM(CASE WHEN source = 'uber' THEN amount ELSE 0 END), 0) AS uber_earnings,
+            COALESCE(SUM(CASE WHEN source = 'bolt' THEN amount ELSE 0 END), 0) AS bolt_earnings
+          FROM earnings_entries
+          WHERE user_id = ?
+            AND DATE(created_at) BETWEEN ${startExpr} AND ${endExpr}
+          `,
+          [req.user.userId],
+        );
+
+        const sessionStats = sessionsRows[0] || {};
+        const cashStats = cashRows[0] || {};
+        const earningsStats = earningsRows[0] || {};
+
+        const uberCash = Number(cashStats.uber_cash || 0);
+        const boltCash = Number(cashStats.bolt_cash || 0);
+        const uberEarnings = Number(earningsStats.uber_earnings || 0);
+        const boltEarnings = Number(earningsStats.bolt_earnings || 0);
+
+        summaries[period] = {
+          session_count: Number(sessionStats.session_count || 0),
+          work_seconds: Number(sessionStats.work_seconds || 0),
+          cash: {
+            uber: uberCash,
+            bolt: boltCash,
+            total: uberCash + boltCash,
+          },
+          earnings: {
+            uber: uberEarnings,
+            bolt: boltEarnings,
+            total: uberEarnings + boltEarnings,
+          },
+          total_money:
+            uberCash +
+            boltCash +
+            uberEarnings +
+            boltEarnings,
+        };
+      }
+
+      res.json({
+        status: "OK",
+        summaries,
+      });
+    } catch (error) {
+      console.error("Dashboard summary error:", error);
+
+      res.status(500).json({
+        status: "ERROR",
+        message: "Błąd pobierania podsumowania",
       });
     }
   },
