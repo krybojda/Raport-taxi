@@ -86,7 +86,9 @@ async function loadUser() {
 
 function renderSummary(summary) {
   document.getElementById("summarySessions").textContent = summary.session_count || 0;
-  document.getElementById("summaryWorkTime").textContent = formatDurationLong(summary.work_seconds || 0);
+  document.getElementById("summaryWorkTime").textContent = formatDurationLong(
+    summary.work_seconds || 0,
+  );
   document.getElementById("summaryCash").textContent = formatMoney(summary.cash_total || 0);
   document.getElementById("summaryEarnings").textContent = formatMoney(summary.earning_total || 0);
 }
@@ -103,29 +105,28 @@ function renderEntries(entries) {
     return;
   }
 
-  tbody.innerHTML = entries.map((item) => {
-    const typeBadgeClass =
-      item.kind === "session" ? "session" : item.kind === "cash" ? "cash" : "earning";
+  tbody.innerHTML = entries
+    .map((item) => {
+      const typeBadgeClass =
+        item.kind === "session" ? "session" : item.kind === "cash" ? "cash" : "earning";
 
-    const sourceBadgeClass =
-      item.source === "uber" ? "uber" : item.source === "bolt" ? "bolt" : "";
+      const sourceBadgeClass =
+        item.source === "uber" ? "uber" : item.source === "bolt" ? "bolt" : "";
 
-    const sessionLabel =
-      item.kind === "session"
-        ? `${formatDateTime(item.start_time)} → ${item.end_time ? formatDateTime(item.end_time) : "Trwa"}`
-        : item.session_id
-          ? `#${item.session_id}`
-          : "-";
+      const sessionLabel =
+        item.kind === "session"
+          ? `${formatDateTime(item.start_time)} → ${item.end_time ? formatDateTime(item.end_time) : "Trwa"}`
+          : item.session_id
+            ? `#${item.session_id}`
+            : "-";
 
-    const amountLabel =
-      item.amount === null || item.amount === undefined ? "-" : formatMoney(item.amount);
+      const amountLabel =
+        item.amount === null || item.amount === undefined ? "-" : formatMoney(item.amount);
 
-    const durationLabel =
-      item.kind === "session"
-        ? formatDurationLong(item.duration_seconds)
-        : "-";
+      const durationLabel =
+        item.kind === "session" ? formatDurationLong(item.duration_seconds) : "-";
 
-    return `
+      return `
       <tr>
         <td>${formatDateTime(item.date_time)}</td>
         <td><span class="badge ${typeBadgeClass}">${item.title}</span></td>
@@ -136,7 +137,8 @@ function renderEntries(entries) {
         <td>${item.note ? `<div class="note">${item.note}</div>` : "-"}</td>
       </tr>
     `;
-  }).join("");
+    })
+    .join("");
 }
 
 async function loadHistory() {

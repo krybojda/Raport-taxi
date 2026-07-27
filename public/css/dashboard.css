@@ -338,3 +338,17 @@ body {
     grid-template-columns: 1fr;
   }
 }
+
+.button-app {
+  background: #7c3aed;
+}
+
+.app-summary {
+  margin-bottom: 18px;
+}
+
+.session-earnings {
+  margin-top: 6px;
+  color: #111827;
+  font-weight: 700;
+}

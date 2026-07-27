@@ -101,13 +101,13 @@ async function getHistory(userId, options = {}) {
   const source = normalizeSource(options.source);
   const sort = normalizeSort(options.sort);
 
-  const from = typeof options.from === "string" && /^\d{4}-\d{2}-\d{2}$/.test(options.from)
-    ? options.from
-    : null;
+  const from =
+    typeof options.from === "string" && /^\d{4}-\d{2}-\d{2}$/.test(options.from)
+      ? options.from
+      : null;
 
-  const to = typeof options.to === "string" && /^\d{4}-\d{2}-\d{2}$/.test(options.to)
-    ? options.to
-    : null;
+  const to =
+    typeof options.to === "string" && /^\d{4}-\d{2}-\d{2}$/.test(options.to) ? options.to : null;
 
   const sessionWhere = ["user_id = ?"];
   const sessionParams = [userId];

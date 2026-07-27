@@ -13,6 +13,11 @@ const { addCashEntry, getCurrentSessionCash, getTodayCash } = require("./cash");
 
 const { getHistory } = require("./history");
 
+const { upsertDayTotal, getTodayTotal } = require("./dayTotals");
+
+const { setCurrentWorkAppAmount } = require("./work");
+const { getDashboardSummary } = require("./summary");
+
 function getRangeStart(period) {
   if (period === "day") {
     return "CURDATE()";
@@ -426,134 +431,149 @@ app.get("/api/cash/today", authenticateToken, async (req, res) => {
 /*
  * Historia
  */
-app.get(
-  "/api/history",
-  authenticateToken,
-  async (req, res) => {
-    try {
-      const data = await getHistory(req.user.userId, {
-        from: req.query.from,
-        to: req.query.to,
-        type: req.query.type,
-        source: req.query.source,
-        sort: req.query.sort,
-      });
+app.get("/api/history", authenticateToken, async (req, res) => {
+  try {
+    const data = await getHistory(req.user.userId, {
+      from: req.query.from,
+      to: req.query.to,
+      type: req.query.type,
+      source: req.query.source,
+      sort: req.query.sort,
+    });
 
-      res.json({
-        status: "OK",
-        ...data,
-      });
-    } catch (error) {
-      console.error("History error:", error);
+    res.json({
+      status: "OK",
+      ...data,
+    });
+  } catch (error) {
+    console.error("History error:", error);
 
-      res.status(500).json({
-        status: "ERROR",
-        message: "Błąd pobierania historii",
-      });
-    }
-  },
-);
+    res.status(500).json({
+      status: "ERROR",
+      message: "Błąd pobierania historii",
+    });
+  }
+});
 
 /*
  * Podsumowanie
  */
-app.get(
-  "/api/dashboard/summary",
-  authenticateToken,
-  async (req, res) => {
-    try {
-      const periods = ["day", "week", "month"];
-      const summaries = {};
+app.get("/api/dashboard/summary", authenticateToken, async (req, res) => {
+  try {
+    const summary = await getDashboardSummary(req.user.userId);
 
-      for (const period of periods) {
-        const startExpr = getRangeStart(period);
-        const endExpr = getRangeEnd(period);
+    res.json({
+      status: "OK",
+      summary,
+    });
+  } catch (error) {
+    console.error("Dashboard summary error:", error);
 
-        const [sessionsRows] = await db.execute(
-          `
-          SELECT
-            COUNT(*) AS session_count,
-            COALESCE(SUM(
-              CASE
-                WHEN end_time IS NOT NULL THEN duration_seconds
-                ELSE TIMESTAMPDIFF(SECOND, start_time, NOW())
-              END
-            ), 0) AS work_seconds
-          FROM work_sessions
-          WHERE user_id = ?
-            AND DATE(start_time) BETWEEN ${startExpr} AND ${endExpr}
-          `,
-          [req.user.userId],
-        );
+    res.status(500).json({
+      status: "ERROR",
+      message: "Błąd pobierania podsumowania",
+    });
+  }
+});
 
-        const [cashRows] = await db.execute(
-          `
-          SELECT
-            COALESCE(SUM(CASE WHEN source = 'uber' THEN amount ELSE 0 END), 0) AS uber_cash,
-            COALESCE(SUM(CASE WHEN source = 'bolt' THEN amount ELSE 0 END), 0) AS bolt_cash
-          FROM cash_entries
-          WHERE user_id = ?
-            AND DATE(created_at) BETWEEN ${startExpr} AND ${endExpr}
-          `,
-          [req.user.userId],
-        );
+/*
+ * ZAPIS PODSUMOWANIA DNIA
+ */
+app.post("/api/day-total/save", authenticateToken, async (req, res) => {
+  try {
+    const { cash_total, apps_total, note } = req.body;
 
-        const [earningsRows] = await db.execute(
-          `
-          SELECT
-            COALESCE(SUM(CASE WHEN source = 'uber' THEN amount ELSE 0 END), 0) AS uber_earnings,
-            COALESCE(SUM(CASE WHEN source = 'bolt' THEN amount ELSE 0 END), 0) AS bolt_earnings
-          FROM earnings_entries
-          WHERE user_id = ?
-            AND DATE(created_at) BETWEEN ${startExpr} AND ${endExpr}
-          `,
-          [req.user.userId],
-        );
+    const today = new Date().toISOString().slice(0, 10);
 
-        const sessionStats = sessionsRows[0] || {};
-        const cashStats = cashRows[0] || {};
-        const earningsStats = earningsRows[0] || {};
+    const result = await upsertDayTotal(req.user.userId, today, cash_total, apps_total, note);
 
-        const uberCash = Number(cashStats.uber_cash || 0);
-        const boltCash = Number(cashStats.bolt_cash || 0);
-        const uberEarnings = Number(earningsStats.uber_earnings || 0);
-        const boltEarnings = Number(earningsStats.bolt_earnings || 0);
+    res.json({
+      status: "OK",
+      message: "Rozliczenie dnia zostało zapisane",
+      data: result,
+    });
+  } catch (error) {
+    console.error("Day total save error:", error);
 
-        summaries[period] = {
-          session_count: Number(sessionStats.session_count || 0),
-          work_seconds: Number(sessionStats.work_seconds || 0),
-          cash: {
-            uber: uberCash,
-            bolt: boltCash,
-            total: uberCash + boltCash,
-          },
-          earnings: {
-            uber: uberEarnings,
-            bolt: boltEarnings,
-            total: uberEarnings + boltEarnings,
-          },
-          total_money:
-            uberCash +
-            boltCash +
-            uberEarnings +
-            boltEarnings,
-        };
-      }
+    res.status(400).json({
+      status: "ERROR",
+      message: error.message,
+    });
+  }
+});
 
-      res.json({
-        status: "OK",
-        summaries,
-      });
-    } catch (error) {
-      console.error("Dashboard summary error:", error);
+/*
+ * PODSUMOWANIE DNIA
+ */
+app.get("/api/day-total/today", authenticateToken, async (req, res) => {
+  try {
+    const data = await getTodayTotal(req.user.userId);
 
-      res.status(500).json({
-        status: "ERROR",
-        message: "Błąd pobierania podsumowania",
-      });
-    }
-  },
-);
+    res.json({
+      status: "OK",
+      data,
+    });
+  } catch (error) {
+    console.error("Day total today error:", error);
+
+    res.status(500).json({
+      status: "ERROR",
+      message: "Błąd pobierania rozliczenia dnia",
+    });
+  }
+});
+
+/*
+ * ZAPIS KWOTY Z APLIKACJI
+ */
+app.post("/api/work/app-amount", authenticateToken, async (req, res) => {
+  try {
+    const { uber_app_amount, bolt_app_amount, app_amount } = req.body;
+
+    const normalizedUberAmount = uber_app_amount ?? app_amount ?? 0;
+    const normalizedBoltAmount = bolt_app_amount ?? 0;
+
+    const session = await setCurrentWorkAppAmount(
+      req.user.userId,
+      normalizedUberAmount,
+      normalizedBoltAmount,
+    );
+
+    res.json({
+      status: "OK",
+      message: "Kwoty z aplikacji zostały zapisane",
+      session,
+    });
+  } catch (error) {
+    console.error("App amount error:", error);
+
+    res.status(400).json({
+      status: "ERROR",
+      message: error.message,
+    });
+  }
+});
+
+/*
+ * PODSUMOWANIE DASHBOARDU
+ */
+app.get("/api/dashboard/summary", authenticateToken, async (req, res) => {
+  try {
+    const summary = await getDashboardSummary(req.user.userId);
+
+    res.json({
+      status: "OK",
+      summary,
+    });
+  } catch (error) {
+    console.error("Dashboard summary error:", error);
+
+    res.status(500).json({
+      status: "ERROR",
+      message: "Błąd pobierania podsumowania",
+    });
+  }
+});
 
 /*
  * START SERWERA
