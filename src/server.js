@@ -11,6 +11,8 @@ const { startWork, stopWork, getCurrentWork, getTodayWork, getRecentWork } = req
 
 const { addCashEntry, getCurrentSessionCash, getTodayCash } = require("./cash");
 
+const { getHistory } = require("./history");
+
 const app = express();
 
 const PORT = process.env.PORT || 3000;
@@ -388,6 +390,37 @@ app.get("/api/cash/today", authenticateToken, async (req, res) => {
     });
   }
 });
+
+/*
+ * Historia
+ */
+app.get(
+  "/api/history",
+  authenticateToken,
+  async (req, res) => {
+    try {
+      const data = await getHistory(req.user.userId, {
+        from: req.query.from,
+        to: req.query.to,
+        type: req.query.type,
+        source: req.query.source,
+        sort: req.query.sort,
+      });
+
+      res.json({
+        status: "OK",
+        ...data,
+      });
+    } catch (error) {
+      console.error("History error:", error);
+
+      res.status(500).json({
+        status: "ERROR",
+        message: "Błąd pobierania historii",
+      });
+    }
+  },
+);
 
 /*
  * START SERWERA

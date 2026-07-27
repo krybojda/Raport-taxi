@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Historia - Taxi</title>
+  <link rel="stylesheet" href="/css/history.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="logo">Taxi System</div>
+
+    <nav class="nav">
+      <a href="/dashboard.html">Dashboard</a>
+    </nav>
+
+    <div class="user-area">
+      <span id="userName">Ładowanie...</span>
+      <button id="logoutButton" type="button">Wyloguj</button>
+    </div>
+  </header>
+
+  <main class="page">
+    <section class="card">
+      <h1>Historia</h1>
+
+      <div class="filters-grid">
+        <div class="field">
+          <label for="fromDate">Od</label>
+          <input id="fromDate" type="date" />
+        </div>
+
+        <div class="field">
+          <label for="toDate">Do</label>
+          <input id="toDate" type="date" />
+        </div>
+
+        <div class="field">
+          <label for="typeFilter">Typ</label>
+          <select id="typeFilter">
+            <option value="all">Wszystko</option>
+            <option value="sessions">Sesje pracy</option>
+            <option value="cash">Gotówka</option>
+            <option value="earnings">Zarobki</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="sourceFilter">Źródło</label>
+          <select id="sourceFilter">
+            <option value="all">Wszystkie</option>
+            <option value="uber">Uber</option>
+            <option value="bolt">Bolt</option>
+          </select>
+          <small>Źródło dotyczy tylko gotówki i zarobków.</small>
+        </div>
+
+        <div class="field">
+          <label for="sortFilter">Sortowanie</label>
+          <select id="sortFilter">
+            <option value="date_desc">Najnowsze</option>
+            <option value="date_asc">Najstarsze</option>
+            <option value="amount_desc">Kwota malejąco</option>
+            <option value="amount_asc">Kwota rosnąco</option>
+            <option value="duration_desc">Czas malejąco</option>
+            <option value="duration_asc">Czas rosnąco</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button id="applyFilters" class="btn primary" type="button">Filtruj</button>
+        <button id="resetFilters" class="btn secondary" type="button">Reset</button>
+      </div>
+
+      <div class="summary-grid">
+        <div class="summary-card">
+          <span>Sesje</span>
+          <strong id="summarySessions">0</strong>
+        </div>
+
+        <div class="summary-card">
+          <span>Łączny czas</span>
+          <strong id="summaryWorkTime">00:00:00</strong>
+        </div>
+
+        <div class="summary-card">
+          <span>Gotówka</span>
+          <strong id="summaryCash">0,00 zł</strong>
+        </div>
+
+        <div class="summary-card">
+          <span>Zarobki</span>
+          <strong id="summaryEarnings">0,00 zł</strong>
+        </div>
+      </div>
+
+      <div id="historyMessage" class="message"></div>
+    </section>
+
+    <section class="card">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Data</th>
+              <th>Rodzaj</th>
+              <th>Źródło</th>
+              <th>Sesja</th>
+              <th>Kwota</th>
+              <th>Czas</th>
+              <th>Notatka</th>
+            </tr>
+          </thead>
+          <tbody id="historyTableBody">
+            <tr>
+              <td colspan="7" class="empty">Ładowanie...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <script src="/js/history.js"></script>
+</body>
+</html>
