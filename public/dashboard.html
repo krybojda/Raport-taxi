@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="pl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dashboard - Taxi</title>
+    <link rel="stylesheet" href="/css/dashboard.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="logo">Taxi System</div>
+
+      <a href="/history.html" class="nav-link">Historia</a>
+
+      <div class="user-area">
+        <span id="userName">Ładowanie...</span>
+        <button id="logoutButton" type="button">Wyloguj</button>
+      </div>
+    </header>
+
+    <main class="dashboard">
+      <h1>Dashboard</h1>
+
+      <section class="card work-card">
+        <h2>Status pracy</h2>
+
+        <div id="workStatus" class="work-status">Sprawdzanie...</div>
+
+        <div id="currentSession" class="current-session"></div>
+
+        <button id="startWorkButton" class="button button-start" type="button">
+          Rozpocznij pracę
+        </button>
+
+        <button id="stopWorkButton" class="button button-stop" type="button" hidden>
+          Zakończ pracę
+        </button>
+
+        <div id="workMessage" class="message"></div>
+      </section>
+
+      <section class="card">
+        <h2>Gotówka</h2>
+
+        <div class="cash-summary">
+          <div class="summary-item">
+            <span class="summary-label">Uber dziś</span>
+            <strong id="uberToday">0,00 zł</strong>
+          </div>
+
+          <div class="summary-item">
+            <span class="summary-label">Bolt dziś</span>
+            <strong id="boltToday">0,00 zł</strong>
+          </div>
+
+          <div class="summary-item">
+            <span class="summary-label">Razem dziś</span>
+            <strong id="cashToday">0,00 zł</strong>
+          </div>
+        </div>
+
+        <div class="cash-actions">
+          <button id="addUberButton" class="button button-uber" type="button">Dodaj Uber</button>
+
+          <button id="addBoltButton" class="button button-bolt" type="button">Dodaj Bolt</button>
+        </div>
+
+        <div id="cashMessage" class="message"></div>
+      </section>
+
+      <section class="card">
+        <h2>Kwota z aplikacji</h2>
+
+        <div class="cash-summary app-summary">
+          <div class="summary-item">
+            <span class="summary-label">Uber dziś</span>
+            <strong id="uberCurrentAppAmount">0,00 zł</strong>
+          </div>
+
+          <div class="summary-item">
+            <span class="summary-label">Bolt dziś</span>
+            <strong id="boltCurrentAppAmount">0,00 zł</strong>
+          </div>
+
+          <div class="summary-item">
+            <span class="summary-label">Razem</span>
+            <strong id="currentAppAmount">0,00 zł</strong>
+          </div>
+        </div>
+
+        <button id="addAppAmountButton" class="button button-app" type="button">
+          Dodaj kwoty z aplikacji
+        </button>
+
+        <div id="appMessage" class="message"></div>
+      </section>
+
+      <section class="card">
+        <h2>Dzisiejsza praca</h2>
+
+        <div class="today-summary">
+          <div class="summary-item">
+            <span class="summary-label">Liczba sesji</span>
+            <strong id="sessionCount">0</strong>
+          </div>
+
+          <div class="summary-item">
+            <span class="summary-label">Łączny czas</span>
+            <strong id="totalWorkTime">00:00:00</strong>
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Podsumowanie</h2>
+
+        <div class="period-grid">
+          <div class="period-card">
+            <h3>Dzisiaj</h3>
+            <div class="period-value" id="summaryDayMoney">0,00 zł</div>
+            <div class="period-meta" id="summaryDayMeta">0 sesji • 00:00:00</div>
+            <div class="period-small" id="summaryDayDetails">
+              Gotówka: 0,00 zł • Aplikacja: 0,00 zł
+            </div>
+          </div>
+
+          <div class="period-card">
+            <h3>Tydzień</h3>
+            <div class="period-value" id="summaryWeekMoney">0,00 zł</div>
+            <div class="period-meta" id="summaryWeekMeta">0 sesji • 00:00:00</div>
+            <div class="period-small" id="summaryWeekDetails">
+              Gotówka: 0,00 zł • Aplikacja: 0,00 zł
+            </div>
+          </div>
+
+          <div class="period-card">
+            <h3>Miesiąc</h3>
+            <div class="period-value" id="summaryMonthMoney">0,00 zł</div>
+            <div class="period-meta" id="summaryMonthMeta">0 sesji • 00:00:00</div>
+            <div class="period-small" id="summaryMonthDetails">
+              Gotówka: 0,00 zł • Aplikacja: 0,00 zł
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Ostatnie 5 sesji pracy (dzisiaj)</h2>
+        <div id="sessionsList">
+          <p>Brak sesji pracy.</p>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Wpisy gotówki z aktywnej sesji</h2>
+        <div id="cashEntriesList">
+          <p>Brak wpisów.</p>
+        </div>
+      </section>
+    </main>
+
+    <script src="/js/dashboard.js"></script>
+  </body>
+</html>

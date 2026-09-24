@@ -1,0 +1,354 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #f4f6f8;
+  color: #222;
+}
+
+/*
+ * TOPBAR
+ */
+
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 25px;
+  background: #1f2937;
+  color: white;
+}
+
+.logo {
+  font-size: 20px;
+  font-weight: bold;
+}
+
+.user-area {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+#logoutButton {
+  padding: 8px 15px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  background: #ef4444;
+  color: white;
+  font-weight: bold;
+}
+
+#logoutButton:hover {
+  opacity: 0.9;
+}
+
+/*
+ * DASHBOARD
+ */
+
+.dashboard {
+  width: 100%;
+  max-width: 950px;
+  margin: 30px auto;
+  padding: 0 20px 40px;
+}
+
+.dashboard h1 {
+  margin-bottom: 25px;
+  font-size: 30px;
+}
+
+/*
+ * KARTY
+ */
+
+.card {
+  background: white;
+  padding: 25px;
+  margin-bottom: 20px;
+  border-radius: 14px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+}
+
+.card h2 {
+  margin-top: 0;
+  margin-bottom: 18px;
+}
+
+/*
+ * STATUS PRACY
+ */
+
+.work-status {
+  font-size: 24px;
+  font-weight: bold;
+  margin: 20px 0;
+}
+
+.work-status.working {
+  color: #16a34a;
+}
+
+.work-status.not-working {
+  color: #6b7280;
+}
+
+.current-session {
+  margin-bottom: 20px;
+  line-height: 1.6;
+}
+
+.live-session-time {
+  margin-top: 8px;
+  font-size: 18px;
+}
+
+/*
+ * PRZYCISKI
+ */
+
+.button {
+  padding: 12px 22px;
+  border: none;
+  border-radius: 10px;
+  color: white;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  transition:
+    transform 0.12s ease,
+    opacity 0.12s ease;
+}
+
+.button:hover {
+  transform: translateY(-1px);
+  opacity: 0.95;
+}
+
+.button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+  transform: none;
+}
+
+.button-start {
+  background: #16a34a;
+}
+
+.button-stop {
+  background: #dc2626;
+}
+
+/* Gotówka */
+
+.button-uber {
+  background: #2563eb;
+}
+
+.button-bolt {
+  background: #111827;
+}
+
+.cash-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.cash-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.summary-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 16px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background: #fafafa;
+}
+
+.summary-label {
+  color: #6b7280;
+  font-size: 14px;
+}
+
+.summary-item strong {
+  font-size: 24px;
+}
+
+.cash-note {
+  margin-top: 4px;
+  color: #6b7280;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.message {
+  margin-top: 15px;
+  min-height: 22px;
+  color: #374151;
+}
+
+/*
+ * PODSUMOWANIE PRACY
+ */
+
+.today-summary {
+  display: flex;
+  gap: 50px;
+  flex-wrap: wrap;
+}
+
+/*
+ * SESJE
+ */
+
+.session-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 18px;
+  padding: 14px 0;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.session-row:last-child {
+  border-bottom: none;
+}
+
+.session-duration {
+  font-weight: bold;
+  white-space: nowrap;
+}
+
+/*
+ * LISTY
+ */
+
+#sessionsList p,
+#cashEntriesList p {
+  margin: 0;
+  color: #6b7280;
+}
+
+/*
+ * MOBILE
+ */
+
+@media (max-width: 700px) {
+  .topbar {
+    flex-direction: column;
+    gap: 10px;
+    text-align: center;
+  }
+
+  .user-area {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .today-summary {
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .cash-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .cash-actions {
+    flex-direction: column;
+  }
+
+  .button {
+    width: 100%;
+  }
+
+  .session-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .session-duration {
+    white-space: normal;
+  }
+}
+
+.nav-link {
+  color: white;
+  text-decoration: none;
+  font-weight: bold;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.nav-link:hover {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.period-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.period-card {
+  padding: 18px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background: #fafafa;
+}
+
+.period-card h3 {
+  margin: 0 0 12px;
+  font-size: 18px;
+}
+
+.period-value {
+  font-size: 28px;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.period-meta {
+  color: #6b7280;
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+
+.period-small {
+  color: #374151;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+@media (max-width: 900px) {
+  .period-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.button-app {
+  background: #7c3aed;
+}
+
+.app-summary {
+  margin-bottom: 18px;
+}
+
+.session-earnings {
+  margin-top: 6px;
+  color: #111827;
+  font-weight: 700;
+}

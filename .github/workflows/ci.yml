@@ -46,6 +46,18 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # Utworzenie testowego użytkownika
+      - name: Create test user
+        env:
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_NAME: ${{ secrets.MYSQL_DATABASE }}
+          DB_USER: ${{ secrets.MYSQL_USER }}
+          DB_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
+
+        run: |
+          node src/createTestUser.js
+
       # ESLint
       - name: ESLint
         run: npm run lint
@@ -80,16 +92,12 @@ jobs:
           DB_NAME: ${{ secrets.MYSQL_DATABASE }}
           DB_USER: ${{ secrets.MYSQL_USER }}
           DB_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
 
         run: |
           npm start > app.log 2>&1 &
           echo $! > app.pid
           sleep 10
-
-      # Sprawdzenie portu
-      - name: Check application port
-        run: |
-          curl --fail http://localhost:3000
 
       # Test API status
       - name: Check API endpoint
@@ -100,6 +108,32 @@ jobs:
       - name: Check database connection
         run: |
           curl --fail http://localhost:3000/api/database
+
+      # Test logowania
+      - name: Test login
+        run: |
+          curl --fail \
+            -c cookies.txt \
+            -X POST \
+            http://localhost:3000/api/auth/login \
+            -H "Content-Type: application/json" \
+            --data '{"name":"CI Test User","password":"CI_Test_Password_123!"}'
+
+      # Test zalogowanego użytkownika
+      - name: Test authenticated user
+        run: |
+          curl --fail \
+            -b cookies.txt \
+            http://localhost:3000/api/auth/me
+
+      # Test wylogowania
+      - name: Test logout
+        run: |
+          curl --fail \
+            -b cookies.txt \
+            -c cookies.txt \
+            -X POST \
+            http://localhost:3000/api/auth/logout
 
       # Zamknięcie aplikacji
       - name: Stop application
