@@ -8,7 +8,7 @@ services:
     restart: unless-stopped
 
     environment:
-      NODE_ENV: development
+      NODE_ENV: production
       TZ: Europe/Warsaw
 
       DB_HOST: taxi-mysql
@@ -16,10 +16,7 @@ services:
       DB_NAME: ${MYSQL_DATABASE}
       DB_USER: ${MYSQL_USER}
       DB_PASSWORD: ${MYSQL_PASSWORD}
-
-    volumes:
-      - .:/app
-      - /app/node_modules
+      JWT_SECRET: ${JWT_SECRET}
 
     ports:
       - "3000:3000"
