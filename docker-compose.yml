@@ -90,3 +90,7 @@ services:
 
 volumes:
   taxi_mysql_data:
+
+networks:
+  default:
+    name: raport-taxi_default
