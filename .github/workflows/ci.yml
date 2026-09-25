@@ -35,16 +35,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # Node
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-
-      # Instalacja paczek
-      - name: Install dependencies
-        run: npm ci
+      # Build Docker image
+      - name: Build Docker image
+        run: docker build -t taxi-app .
 
       # Utworzenie testowego użytkownika
       - name: Create test user
@@ -56,20 +49,21 @@ jobs:
           DB_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
 
         run: |
-          node src/createTestUser.js
+          docker run --rm --network host \
+            -e DB_HOST=127.0.0.1 \
+            -e DB_PORT=3306 \
+            -e DB_NAME="${{ secrets.MYSQL_DATABASE }}" \
+            -e DB_USER="${{ secrets.MYSQL_USER }}" \
+            -e DB_PASSWORD="${{ secrets.MYSQL_PASSWORD }}" \
+            taxi-app node src/createTestUser.js
 
       # ESLint
       - name: ESLint
-        run: npm run lint
+        run: docker run --rm taxi-app npm run lint
 
       # Sprawdzenie formatowania
       - name: Check formatting
-        run: npm run format
-
-      # Build Docker image
-      - name: Build Docker image
-        run: |
-          docker build -t taxi-app .
+        run: docker run --rm taxi-app npm run format
 
       # Validate docker-compose
       - name: Validate docker-compose
@@ -78,8 +72,7 @@ jobs:
 
       # Sprawdzenie składni JS
       - name: Check JavaScript syntax
-        run: |
-          node --check src/server.js
+        run: docker run --rm taxi-app node --check src/server.js
 
       # Start aplikacji
       - name: Start application
@@ -95,9 +88,26 @@ jobs:
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
 
         run: |
-          npm start > app.log 2>&1 &
-          echo $! > app.pid
-          sleep 10
+          docker run -d --name taxi-app-ci --network host \
+            -e NODE_ENV=test \
+            -e PORT=3000 \
+            -e DB_HOST=127.0.0.1 \
+            -e DB_PORT=3306 \
+            -e DB_NAME="${{ secrets.MYSQL_DATABASE }}" \
+            -e DB_USER="${{ secrets.MYSQL_USER }}" \
+            -e DB_PASSWORD="${{ secrets.MYSQL_PASSWORD }}" \
+            -e JWT_SECRET="${{ secrets.JWT_SECRET }}" \
+            taxi-app npm start
+
+          for attempt in {1..30}; do
+            if curl --silent --fail http://localhost:3000/api/status > /dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+
+          docker logs taxi-app-ci
+          exit 1
 
       # Test API status
       - name: Check API endpoint
@@ -138,5 +148,4 @@ jobs:
       # Zamknięcie aplikacji
       - name: Stop application
         if: always()
-        run: |
-          kill $(cat app.pid) || true
+        run: docker rm --force taxi-app-ci || true
