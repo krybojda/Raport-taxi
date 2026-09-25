@@ -580,9 +580,37 @@ app.get("/api/dashboard/summary", authenticateToken, async (req, res) => {
  */
 
 if (require.main === module) {
-  app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Taxi app running on port ${PORT}`);
-  });
+  db.execute(`
+    CREATE TABLE IF NOT EXISTS earnings_entries (
+      id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+      user_id INT UNSIGNED NOT NULL,
+      work_session_id INT UNSIGNED DEFAULT NULL,
+      source ENUM('uber', 'bolt') NOT NULL DEFAULT 'uber',
+      amount DECIMAL(10, 2) NOT NULL,
+      note VARCHAR(255) DEFAULT NULL,
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      PRIMARY KEY (id),
+      KEY idx_earnings_entries_user_id (user_id),
+      KEY idx_earnings_entries_work_session_id (work_session_id),
+      KEY idx_earnings_entries_created_at (created_at),
+      CONSTRAINT fk_earnings_entries_user
+        FOREIGN KEY (user_id) REFERENCES users (id)
+        ON DELETE CASCADE ON UPDATE CASCADE,
+      CONSTRAINT fk_earnings_entries_work_session
+        FOREIGN KEY (work_session_id) REFERENCES work_sessions (id)
+        ON DELETE SET NULL ON UPDATE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+  `)
+    .then(() => {
+      app.listen(PORT, "0.0.0.0", () => {
+        console.log(`Taxi app running on port ${PORT}`);
+      });
+    })
+    .catch((error) => {
+      console.error("Database initialization error:", error);
+      process.exit(1);
+    });
 }
 
 module.exports = app;

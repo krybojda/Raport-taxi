@@ -263,10 +263,38 @@ async function getTodayWork(userId) {
   return sessions;
 }
 
+/*
+ * OSTATNIE SESJE PRACY
+ */
+async function getRecentWork(userId) {
+  const [sessions] = await db.execute(
+    `
+    SELECT
+      id,
+      start_time,
+      end_time,
+      duration_seconds,
+      duration_time,
+      app_amount,
+      uber_app_amount,
+      bolt_app_amount,
+      business_date
+    FROM work_sessions
+    WHERE user_id = ?
+    ORDER BY start_time DESC
+    LIMIT 10
+    `,
+    [userId],
+  );
+
+  return sessions;
+}
+
 module.exports = {
   startWork,
   stopWork,
   setCurrentWorkAppAmount,
   getCurrentWork,
   getTodayWork,
+  getRecentWork,
 };
