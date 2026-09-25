@@ -63,7 +63,23 @@ jobs:
 
       # Sprawdzenie formatowania
       - name: Check formatting
-        run: docker run --rm taxi-app npm run format
+        run: |
+          set -euo pipefail
+
+          base_sha="${{ github.event.before }}"
+          if [ -z "$base_sha" ] || [ "$base_sha" = "0000000000000000000000000000000000000000" ]; then
+            base_sha="HEAD^"
+          fi
+
+          changed_files=$(git diff --name-only "$base_sha" "${{ github.sha }}" -- \
+            '*.css' '*.html' '*.js' '*.json' '*.md' '*.mjs' '*.yml' '*.yaml')
+
+          if [ -z "$changed_files" ]; then
+            echo "Brak zmienionych plików obsługiwanych przez Prettier."
+            exit 0
+          fi
+
+          docker run --rm taxi-app npx prettier --check --ignore-unknown $changed_files
 
       # Validate docker-compose
       - name: Validate docker-compose
