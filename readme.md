@@ -126,7 +126,7 @@ Backup obejmuje:
 2. `cd Raport-taxi`
 3. `cp .env.example .env`
 4. W `.env` należy uzupełnić dane połączenia do MySQL i wartość `BACKUP_MYSQL`.
-5. Jeśli zależności Node.js nie są jeszcze zainstalowane, należy uruchomić `npm install`.
+5. Zależności Node.js są instalowane automatycznie podczas budowania kontenera. Nie trzeba uruchamiać `npm install` na hoście.
 6. Hooki Git i uprawnienia należy skonfigurować następująco:
 
 ```powershell
