@@ -88,7 +88,7 @@ jobs:
 
       # Sprawdzenie składni JS
       - name: Check JavaScript syntax
-        run: docker run --rm taxi-app node --check src/server.js
+        run: docker run --rm taxi-app sh -c "find src -name '*.js' | xargs node --check"
 
       # Start aplikacji
       - name: Start application
