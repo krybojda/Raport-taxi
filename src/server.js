@@ -342,23 +342,9 @@ app.get("/api/work/recent", authenticateToken, async (req, res) => {
     console.error("Recent work error:", error);
 
     return res.status(500).json({
-      message: "B??d pobierania ostatnich sesji pracy",
+      message: "Błąd pobierania ostatnich sesji pracy",
     });
   }
-});
-
-app.post("/api/auth/logout", (req, res) => {
-  res.clearCookie("auth_token", {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/",
-  });
-
-  res.json({
-    status: "OK",
-    message: "Wylogowano pomyślnie",
-  });
 });
 
 /*
@@ -555,34 +541,116 @@ app.post("/api/work/app-amount", authenticateToken, async (req, res) => {
 });
 
 /*
- * PODSUMOWANIE DASHBOARDU
- */
-app.get("/api/dashboard/summary", authenticateToken, async (req, res) => {
-  try {
-    const summary = await getDashboardSummary(req.user.userId);
-
-    res.json({
-      status: "OK",
-      summary,
-    });
-  } catch (error) {
-    console.error("Dashboard summary error:", error);
-
-    res.status(500).json({
-      status: "ERROR",
-      message: "Błąd pobierania podsumowania",
-    });
-  }
-});
-
-/*
  * START SERWERA
  */
 
 if (require.main === module) {
-  app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Taxi app running on port ${PORT}`);
-  });
+  (async () => {
+    try {
+      await db.execute(`
+        CREATE TABLE IF NOT EXISTS users (
+          id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+          email VARCHAR(255) NOT NULL UNIQUE,
+          password_hash VARCHAR(255) NOT NULL,
+          name VARCHAR(255) NOT NULL,
+          role ENUM('driver', 'admin') NOT NULL DEFAULT 'driver',
+          status ENUM('active', 'inactive') NOT NULL DEFAULT 'active',
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+
+      await db.execute(`
+        CREATE TABLE IF NOT EXISTS work_sessions (
+          id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+          user_id INT UNSIGNED NOT NULL,
+          start_time DATETIME NOT NULL,
+          end_time DATETIME DEFAULT NULL,
+          duration_seconds INT UNSIGNED DEFAULT NULL,
+          duration_time TIME DEFAULT NULL,
+          app_amount DECIMAL(10, 2) DEFAULT NULL,
+          uber_app_amount DECIMAL(10, 2) DEFAULT NULL,
+          bolt_app_amount DECIMAL(10, 2) DEFAULT NULL,
+          business_date DATE NOT NULL,
+          PRIMARY KEY (id),
+          KEY idx_work_sessions_user_id (user_id),
+          KEY idx_work_sessions_business_date (business_date),
+          CONSTRAINT fk_work_sessions_user
+            FOREIGN KEY (user_id) REFERENCES users (id)
+            ON DELETE CASCADE ON UPDATE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+      `);
+
+      await db.execute(`
+        CREATE TABLE IF NOT EXISTS cash_entries (
+          id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+          user_id INT UNSIGNED NOT NULL,
+          work_session_id INT UNSIGNED NOT NULL,
+          source ENUM('uber', 'bolt') NOT NULL,
+          amount DECIMAL(10, 2) NOT NULL,
+          note VARCHAR(255) DEFAULT NULL,
+          created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          PRIMARY KEY (id),
+          KEY idx_cash_entries_user_id (user_id),
+          KEY idx_cash_entries_work_session_id (work_session_id),
+          CONSTRAINT fk_cash_entries_user
+            FOREIGN KEY (user_id) REFERENCES users (id)
+            ON DELETE CASCADE ON UPDATE CASCADE,
+          CONSTRAINT fk_cash_entries_work_session
+            FOREIGN KEY (work_session_id) REFERENCES work_sessions (id)
+            ON DELETE CASCADE ON UPDATE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+      `);
+
+      await db.execute(`
+        CREATE TABLE IF NOT EXISTS work_day_totals (
+          id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+          user_id INT UNSIGNED NOT NULL,
+          work_date DATE NOT NULL,
+          cash_total DECIMAL(10, 2) NOT NULL DEFAULT 0,
+          apps_total DECIMAL(10, 2) NOT NULL DEFAULT 0,
+          day_total DECIMAL(10, 2) NOT NULL DEFAULT 0,
+          note VARCHAR(255) DEFAULT NULL,
+          created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          PRIMARY KEY (id),
+          UNIQUE KEY uq_work_day_totals_user_date (user_id, work_date),
+          CONSTRAINT fk_work_day_totals_user
+            FOREIGN KEY (user_id) REFERENCES users (id)
+            ON DELETE CASCADE ON UPDATE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+      `);
+
+      await db.execute(`
+        CREATE TABLE IF NOT EXISTS earnings_entries (
+          id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+          user_id INT UNSIGNED NOT NULL,
+          work_session_id INT UNSIGNED DEFAULT NULL,
+          source ENUM('uber', 'bolt') NOT NULL DEFAULT 'uber',
+          amount DECIMAL(10, 2) NOT NULL,
+          note VARCHAR(255) DEFAULT NULL,
+          created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          PRIMARY KEY (id),
+          KEY idx_earnings_entries_user_id (user_id),
+          KEY idx_earnings_entries_work_session_id (work_session_id),
+          KEY idx_earnings_entries_created_at (created_at),
+          CONSTRAINT fk_earnings_entries_user
+            FOREIGN KEY (user_id) REFERENCES users (id)
+            ON DELETE CASCADE ON UPDATE CASCADE,
+          CONSTRAINT fk_earnings_entries_work_session
+            FOREIGN KEY (work_session_id) REFERENCES work_sessions (id)
+            ON DELETE SET NULL ON UPDATE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+      `);
+
+      app.listen(PORT, "0.0.0.0", () => {
+        console.log(`Taxi app running on port ${PORT}`);
+      });
+    } catch (error) {
+      console.error("Database initialization error:", error);
+      process.exit(1);
+    }
+  })();
 }
 
 module.exports = app;
