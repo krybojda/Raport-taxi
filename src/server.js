@@ -347,8 +347,6 @@ app.get("/api/work/recent", authenticateToken, async (req, res) => {
   }
 });
 
-
-
 /*
  * Dodawnie wpisu gotówkowego
  */
@@ -542,14 +540,13 @@ app.post("/api/work/app-amount", authenticateToken, async (req, res) => {
   }
 });
 
-
-
 /*
  * START SERWERA
  */
 
 if (require.main === module) {
-  db.execute(`
+  db.execute(
+    `
     CREATE TABLE IF NOT EXISTS earnings_entries (
       id INT UNSIGNED NOT NULL AUTO_INCREMENT,
       user_id INT UNSIGNED NOT NULL,
@@ -570,7 +567,8 @@ if (require.main === module) {
         FOREIGN KEY (work_session_id) REFERENCES work_sessions (id)
         ON DELETE SET NULL ON UPDATE CASCADE
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
-  `)
+  `,
+  )
     .then(() => {
       app.listen(PORT, "0.0.0.0", () => {
         console.log(`Taxi app running on port ${PORT}`);
