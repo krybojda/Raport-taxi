@@ -22,7 +22,11 @@ Prosty system do zarządzania pracą kierowcy taxi.
 
 ## Backend
 
-Aplikacja jest oparta na Node.js i korzysta z:
+Aplikacja jest oparta na Node.js i działa wyłącznie w kontenerze `taxi-app`.
+Node.js, npm oraz wszystkie zależności backendu są instalowane i uruchamiane
+w Dockerze. Nie trzeba instalować Node.js ani uruchamiać `npm install` na hoście.
+
+Aplikacja korzysta z:
 
 - `express`
 - `mysql2`
@@ -145,16 +149,40 @@ docker compose up -d --build
 
 8. Aplikacja jest dostępna pod adresem `http://localhost:3000`.
 
+Po uruchomieniu usług polecenia npm należy wykonywać wewnątrz kontenera:
+
+```powershell
+docker compose exec taxi-app npm run lint
+docker compose exec taxi-app npm run format
+docker compose exec taxi-app npm run format:fix
+```
+
+Polecenie `docker compose exec taxi-app` uruchamia wskazany skrypt wewnątrz
+działającego kontenera aplikacji. Oznacza to, że Node.js, npm i zależności nie
+muszą być zainstalowane na hoście.
+
+- `npm run lint` - sprawdza kod za pomocą ESLint i nie modyfikuje plików.
+- `npm run format` - sprawdza formatowanie za pomocą Prettiera i nie modyfikuje plików.
+- `npm run format:fix` - automatycznie formatuje pliki za pomocą Prettiera i może je zmodyfikować.
+
+Tryb developerski można uruchomić w kontenerze poleceniem:
+
+```powershell
+docker compose exec taxi-app npm run dev
+```
+
 ## Skrypty npm
 
 Dostępne skrypty w `package.json`:
 
-- `npm start` - uruchamia `node src/server.js`
-- `npm run dev` - uruchamia `node --watch src/server.js`
-- `npm run lint` - uruchamia ESLint w celu sprawdzenia jakości kodu
-- `npm run lint:fix` - automatycznie poprawia problemy wykryte przez ESLint
-- `npm run format` - sprawdza formatowanie kodu przy użyciu Prettier
-- `npm run format:fix` - automatycznie formatuje pliki zgodnie z zasadami Prettier
+- `npm start` - uruchamia `node src/server.js` w kontenerze aplikacji
+- `npm run dev` - uruchamia `node --watch src/server.js` w kontenerze aplikacji
+- `npm run lint` - uruchamia ESLint w kontenerze
+- `npm run lint:fix` - automatycznie poprawia problemy wykryte przez ESLint w kontenerze
+- `npm run format` - sprawdza formatowanie kodu przy użyciu Prettier w kontenerze
+- `npm run format:fix` - automatycznie formatuje pliki przy użyciu Prettier w kontenerze
+
+Na hoście wymagany jest tylko Docker Desktop z obsługą Docker Compose.
 
 ## Dostępność
 
