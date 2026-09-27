@@ -1,68 +1,15 @@
 <!doctype html>
-<html>
+<html lang="pl">
   <head>
     <meta charset="UTF-8" />
-    <title>Taxi System</title>
-
-    <style>
-      body {
-        font-family: Arial;
-        margin: 40px;
-      }
-
-      .box {
-        padding: 20px;
-        border: 1px solid #ccc;
-        width: 400px;
-      }
-
-      .ok {
-        color: green;
-      }
-
-      .error {
-        color: red;
-      }
-    </style>
+    <meta http-equiv="refresh" content="0; url=login.html" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Taxi</title>
   </head>
-
   <body>
-    <h1>System Taxi</h1>
-
-    <div class="box">
-      <h3>Status systemu</h3>
-
-      <p id="app">Sprawdzanie...</p>
-
-      <p id="db">Sprawdzanie bazy...</p>
-    </div>
-
+    <p>Przekierowanie do strony logowania...</p>
     <script>
-      const BASE_URL = window.location.pathname.startsWith("/taxi") ? "/taxi" : "";
-
-      fetch(`${BASE_URL}/api/database`)
-        .then(async (r) => {
-          if (!r.ok) {
-            throw new Error(await r.text());
-          }
-          return r.json();
-        })
-
-        .then((data) => {
-          document.getElementById("app").innerHTML = "Node.js: <span class='ok'>działa</span>";
-
-          document.getElementById("db").innerHTML =
-            "MySQL: <span class='ok'>połączono</span><br>" +
-            "Czas bazy: " +
-            data.data[0].mysql_time;
-        })
-
-        .catch((err) => {
-          document.getElementById("app").innerHTML = "Node.js: <span class='error'>błąd</span>";
-
-          document.getElementById("db").innerHTML =
-            "<span class='error'>" + err.message + "</span>";
-        });
+      window.location.replace("login.html");
     </script>
   </body>
 </html>
