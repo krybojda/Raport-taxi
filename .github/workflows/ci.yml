@@ -34,6 +34,8 @@ jobs:
       # Pobranie repo
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
 
       # Build Docker image
       - name: Build Docker image
