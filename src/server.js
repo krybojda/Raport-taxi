@@ -342,24 +342,12 @@ app.get("/api/work/recent", authenticateToken, async (req, res) => {
     console.error("Recent work error:", error);
 
     return res.status(500).json({
-      message: "B??d pobierania ostatnich sesji pracy",
+      message: "Błąd pobierania ostatnich sesji pracy",
     });
   }
 });
 
-app.post("/api/auth/logout", (req, res) => {
-  res.clearCookie("auth_token", {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/",
-  });
 
-  res.json({
-    status: "OK",
-    message: "Wylogowano pomyślnie",
-  });
-});
 
 /*
  * Dodawnie wpisu gotówkowego
@@ -554,26 +542,7 @@ app.post("/api/work/app-amount", authenticateToken, async (req, res) => {
   }
 });
 
-/*
- * PODSUMOWANIE DASHBOARDU
- */
-app.get("/api/dashboard/summary", authenticateToken, async (req, res) => {
-  try {
-    const summary = await getDashboardSummary(req.user.userId);
 
-    res.json({
-      status: "OK",
-      summary,
-    });
-  } catch (error) {
-    console.error("Dashboard summary error:", error);
-
-    res.status(500).json({
-      status: "ERROR",
-      message: "Błąd pobierania podsumowania",
-    });
-  }
-});
 
 /*
  * START SERWERA
