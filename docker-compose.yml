@@ -21,6 +21,10 @@ services:
     ports:
       - "3000:3000"
 
+    volumes:
+      - ./src:/app/src
+      - ./public:/app/public
+
     depends_on:
       taxi-mysql:
         condition: service_healthy
