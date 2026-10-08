@@ -70,7 +70,11 @@ app.use((req, res, next) => {
   console.log("REQUEST:", req.method, req.url);
 
   if (req.body && Object.keys(req.body).length > 0) {
-    console.log("BODY:", req.body);
+    const safeBody = { ...req.body };
+    if ("password" in safeBody) {
+      safeBody.password = "***";
+    }
+    console.log("BODY:", safeBody);
   }
 
   next();
