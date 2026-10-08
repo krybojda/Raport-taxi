@@ -6,60 +6,35 @@ const cookieParser = require("cookie-parser");
 const db = require("./database");
 const { loginUser } = require("./auth");
 const { authenticateToken } = require("./authMiddleware");
-
-const { startWork, stopWork, getCurrentWork, getTodayWork, getRecentWork } = require("./work");
-
+const { getBusinessDate } = require("./businessDate");
+const {
+  startWork,
+  stopWork,
+  setCurrentWorkAppAmount,
+  getCurrentWork,
+  getTodayWork,
+  getRecentWork,
+} = require("./work");
 const { addCashEntry, getCurrentSessionCash, getTodayCash } = require("./cash");
-
 const { getHistory } = require("./history");
-
 const { upsertDayTotal, getTodayTotal } = require("./dayTotals");
-
-const { setCurrentWorkAppAmount } = require("./work");
 const { getDashboardSummary } = require("./summary");
 
-function getRangeStart(period) {
-  if (period === "day") {
-    return "CURDATE()";
-  }
-
-  if (period === "week") {
-    return "DATE_SUB(CURDATE(), INTERVAL WEEKDAY(CURDATE()) DAY)";
-  }
-
-  if (period === "month") {
-    return "DATE_FORMAT(CURDATE(), '%Y-%m-01')";
-  }
-
-  return "CURDATE()";
-}
-
-function getRangeEnd(period) {
-  if (period === "day") {
-    return "CURDATE()";
-  }
-
-  if (period === "week") {
-    return "DATE_ADD(DATE_SUB(CURDATE(), INTERVAL WEEKDAY(CURDATE()) DAY), INTERVAL 6 DAY)";
-  }
-
-  if (period === "month") {
-    return "LAST_DAY(CURDATE())";
-  }
-
-  return "CURDATE()";
-}
-
 const app = express();
-
 const PORT = process.env.PORT || 3000;
+
+const AUTH_COOKIE_OPTIONS = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production",
+  sameSite: "lax",
+  path: "/",
+};
 
 /*
  * MIDDLEWARE
  */
 
 app.use(express.json());
-
 app.use(cookieParser());
 
 /*
@@ -87,7 +62,7 @@ app.use((req, res, next) => {
 app.use(express.static("public"));
 
 /*
- * STATUS NODE.JS
+ * STATUS SYSTEMU I BAZY DANYCH
  */
 
 app.get("/api/status", (req, res) => {
@@ -96,10 +71,6 @@ app.get("/api/status", (req, res) => {
     node: "running",
   });
 });
-
-/*
- * STATUS BAZY DANYCH
- */
 
 app.get("/api/database", async (req, res) => {
   try {
@@ -122,7 +93,7 @@ app.get("/api/database", async (req, res) => {
 });
 
 /*
- * LOGOWANIE
+ * AUTORYZACJA
  */
 
 app.post("/api/auth/login", async (req, res) => {
@@ -132,21 +103,13 @@ app.post("/api/auth/login", async (req, res) => {
     const result = await loginUser(name, password);
 
     res.cookie("auth_token", result.token, {
-      httpOnly: true,
-
-      secure: process.env.NODE_ENV === "production",
-
-      sameSite: "lax",
-
+      ...AUTH_COOKIE_OPTIONS,
       maxAge: 7 * 24 * 60 * 60 * 1000,
-
-      path: "/",
     });
 
     res.status(200).json({
       status: "OK",
       message: "Zalogowano pomyślnie",
-
       user: result.user,
     });
   } catch (error) {
@@ -159,17 +122,8 @@ app.post("/api/auth/login", async (req, res) => {
   }
 });
 
-/*
- * WYLOGOWANIE
- */
-
 app.post("/api/auth/logout", (req, res) => {
-  res.clearCookie("auth_token", {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/",
-  });
+  res.clearCookie("auth_token", AUTH_COOKIE_OPTIONS);
 
   res.json({
     status: "OK",
@@ -177,24 +131,20 @@ app.post("/api/auth/logout", (req, res) => {
   });
 });
 
-/*
- * AKTUALNIE ZALOGOWANY UŻYTKOWNIK
- */
-
 app.get("/api/auth/me", authenticateToken, async (req, res) => {
   try {
     const [users] = await db.execute(
       `
-        SELECT
-          id,
-          email,
-          name,
-          role,
-          status
-        FROM users
-        WHERE id = ?
-        LIMIT 1
-        `,
+      SELECT
+        id,
+        email,
+        name,
+        role,
+        status
+      FROM users
+      WHERE id = ?
+      LIMIT 1
+      `,
       [req.user.userId],
     );
 
@@ -216,7 +166,6 @@ app.get("/api/auth/me", authenticateToken, async (req, res) => {
 
     res.json({
       status: "OK",
-
       user: {
         id: user.id,
         email: user.email,
@@ -236,7 +185,7 @@ app.get("/api/auth/me", authenticateToken, async (req, res) => {
 });
 
 /*
- * ROZPOCZĘCIE PRACY
+ * SESJE PRACY
  */
 
 app.post("/api/work/start", authenticateToken, async (req, res) => {
@@ -258,10 +207,6 @@ app.post("/api/work/start", authenticateToken, async (req, res) => {
   }
 });
 
-/*
- * ZAKOŃCZENIE PRACY
- */
-
 app.post("/api/work/stop", authenticateToken, async (req, res) => {
   try {
     const session = await stopWork(req.user.userId);
@@ -281,19 +226,13 @@ app.post("/api/work/stop", authenticateToken, async (req, res) => {
   }
 });
 
-/*
- * AKTUALNA SESJA PRACY
- */
-
 app.get("/api/work/current", authenticateToken, async (req, res) => {
   try {
     const session = await getCurrentWork(req.user.userId);
 
     res.json({
       status: "OK",
-
       working: session !== null,
-
       session,
     });
   } catch (error) {
@@ -306,10 +245,6 @@ app.get("/api/work/current", authenticateToken, async (req, res) => {
   }
 });
 
-/*
- * DZISIEJSZE SESJE PRACY
- */
-
 app.get("/api/work/today", authenticateToken, async (req, res) => {
   try {
     const sessions = await getTodayWork(req.user.userId);
@@ -320,11 +255,8 @@ app.get("/api/work/today", authenticateToken, async (req, res) => {
 
     res.json({
       status: "OK",
-
-      date: new Date().toISOString().split("T")[0],
-
+      date: getBusinessDate(),
       sessions,
-
       total_seconds: totalSeconds,
     });
   } catch (error) {
@@ -341,181 +273,20 @@ app.get("/api/work/recent", authenticateToken, async (req, res) => {
   try {
     const sessions = await getRecentWork(req.user.userId);
 
-    return res.json({ sessions });
+    return res.json({
+      status: "OK",
+      sessions,
+    });
   } catch (error) {
     console.error("Recent work error:", error);
 
     return res.status(500).json({
+      status: "ERROR",
       message: "Błąd pobierania ostatnich sesji pracy",
     });
   }
 });
 
-/*
- * Dodawnie wpisu gotówkowego
- */
-
-app.post("/api/cash/add", authenticateToken, async (req, res) => {
-  try {
-    const { amount, source, note } = req.body;
-
-    const entry = await addCashEntry(req.user.userId, amount, source, note);
-
-    res.status(201).json({
-      status: "OK",
-      message: "Gotówka została zapisana",
-      entry,
-    });
-  } catch (error) {
-    console.error("Cash add error:", error);
-
-    res.status(400).json({
-      status: "ERROR",
-      message: error.message,
-    });
-  }
-});
-
-/*
- * Aktywna sesja gotówkowa
- */
-app.get("/api/cash/current-session", authenticateToken, async (req, res) => {
-  try {
-    const data = await getCurrentSessionCash(req.user.userId);
-
-    res.json({
-      status: "OK",
-      ...data,
-    });
-  } catch (error) {
-    console.error("Cash current-session error:", error);
-
-    res.status(500).json({
-      status: "ERROR",
-      message: "Błąd pobierania gotówki z aktywnej sesji",
-    });
-  }
-});
-
-/*
- * Dzisiaj gotówka
- */
-app.get("/api/cash/today", authenticateToken, async (req, res) => {
-  try {
-    const data = await getTodayCash(req.user.userId);
-
-    res.json({
-      status: "OK",
-      ...data,
-    });
-  } catch (error) {
-    console.error("Cash today error:", error);
-
-    res.status(500).json({
-      status: "ERROR",
-      message: "Błąd pobierania gotówki z dnia",
-    });
-  }
-});
-
-/*
- * Historia
- */
-app.get("/api/history", authenticateToken, async (req, res) => {
-  try {
-    const data = await getHistory(req.user.userId, {
-      from: req.query.from,
-      to: req.query.to,
-      type: req.query.type,
-      source: req.query.source,
-      sort: req.query.sort,
-    });
-
-    res.json({
-      status: "OK",
-      ...data,
-    });
-  } catch (error) {
-    console.error("History error:", error);
-
-    res.status(500).json({
-      status: "ERROR",
-      message: "Błąd pobierania historii",
-    });
-  }
-});
-
-/*
- * Podsumowanie
- */
-app.get("/api/dashboard/summary", authenticateToken, async (req, res) => {
-  try {
-    const summary = await getDashboardSummary(req.user.userId);
-
-    res.json({
-      status: "OK",
-      summary,
-    });
-  } catch (error) {
-    console.error("Dashboard summary error:", error);
-
-    res.status(500).json({
-      status: "ERROR",
-      message: "Błąd pobierania podsumowania",
-    });
-  }
-});
-
-/*
- * ZAPIS PODSUMOWANIA DNIA
- */
-app.post("/api/day-total/save", authenticateToken, async (req, res) => {
-  try {
-    const { cash_total, apps_total, note } = req.body;
-
-    const today = new Date().toISOString().slice(0, 10);
-
-    const result = await upsertDayTotal(req.user.userId, today, cash_total, apps_total, note);
-
-    res.json({
-      status: "OK",
-      message: "Rozliczenie dnia zostało zapisane",
-      data: result,
-    });
-  } catch (error) {
-    console.error("Day total save error:", error);
-
-    res.status(400).json({
-      status: "ERROR",
-      message: error.message,
-    });
-  }
-});
-
-/*
- * PODSUMOWANIE DNIA
- */
-app.get("/api/day-total/today", authenticateToken, async (req, res) => {
-  try {
-    const data = await getTodayTotal(req.user.userId);
-
-    res.json({
-      status: "OK",
-      data,
-    });
-  } catch (error) {
-    console.error("Day total today error:", error);
-
-    res.status(500).json({
-      status: "ERROR",
-      message: "Błąd pobierania rozliczenia dnia",
-    });
-  }
-});
-
-/*
- * ZAPIS KWOTY Z APLIKACJI
- */
 app.post("/api/work/app-amount", authenticateToken, async (req, res) => {
   try {
     const { uber_app_amount, bolt_app_amount, app_amount } = req.body;
@@ -545,107 +316,263 @@ app.post("/api/work/app-amount", authenticateToken, async (req, res) => {
 });
 
 /*
- * START SERWERA
+ * GOTÓWKA
  */
+
+app.post("/api/cash/add", authenticateToken, async (req, res) => {
+  try {
+    const { amount, source, note } = req.body;
+
+    const entry = await addCashEntry(req.user.userId, amount, source, note);
+
+    res.status(201).json({
+      status: "OK",
+      message: "Gotówka została zapisana",
+      entry,
+    });
+  } catch (error) {
+    console.error("Cash add error:", error);
+
+    res.status(400).json({
+      status: "ERROR",
+      message: error.message,
+    });
+  }
+});
+
+app.get("/api/cash/current-session", authenticateToken, async (req, res) => {
+  try {
+    const data = await getCurrentSessionCash(req.user.userId);
+
+    res.json({
+      status: "OK",
+      ...data,
+    });
+  } catch (error) {
+    console.error("Cash current-session error:", error);
+
+    res.status(500).json({
+      status: "ERROR",
+      message: "Błąd pobierania gotówki z aktywnej sesji",
+    });
+  }
+});
+
+app.get("/api/cash/today", authenticateToken, async (req, res) => {
+  try {
+    const data = await getTodayCash(req.user.userId);
+
+    res.json({
+      status: "OK",
+      ...data,
+    });
+  } catch (error) {
+    console.error("Cash today error:", error);
+
+    res.status(500).json({
+      status: "ERROR",
+      message: "Błąd pobierania gotówki z dnia",
+    });
+  }
+});
+
+/*
+ * PODSUMOWANIE I ROZLICZENIE DNIA
+ */
+
+app.get("/api/dashboard/summary", authenticateToken, async (req, res) => {
+  try {
+    const summary = await getDashboardSummary(req.user.userId);
+
+    res.json({
+      status: "OK",
+      summary,
+    });
+  } catch (error) {
+    console.error("Dashboard summary error:", error);
+
+    res.status(500).json({
+      status: "ERROR",
+      message: "Błąd pobierania podsumowania",
+    });
+  }
+});
+
+app.post("/api/day-total/save", authenticateToken, async (req, res) => {
+  try {
+    const { cash_total, apps_total, note } = req.body;
+
+    const today = getBusinessDate();
+
+    const result = await upsertDayTotal(req.user.userId, today, cash_total, apps_total, note);
+
+    res.json({
+      status: "OK",
+      message: "Rozliczenie dnia zostało zapisane",
+      data: result,
+    });
+  } catch (error) {
+    console.error("Day total save error:", error);
+
+    res.status(400).json({
+      status: "ERROR",
+      message: error.message,
+    });
+  }
+});
+
+app.get("/api/day-total/today", authenticateToken, async (req, res) => {
+  try {
+    const data = await getTodayTotal(req.user.userId);
+
+    res.json({
+      status: "OK",
+      data,
+    });
+  } catch (error) {
+    console.error("Day total today error:", error);
+
+    res.status(500).json({
+      status: "ERROR",
+      message: "Błąd pobierania rozliczenia dnia",
+    });
+  }
+});
+
+/*
+ * HISTORIA
+ */
+
+app.get("/api/history", authenticateToken, async (req, res) => {
+  try {
+    const data = await getHistory(req.user.userId, {
+      from: req.query.from,
+      to: req.query.to,
+      type: req.query.type,
+      source: req.query.source,
+      sort: req.query.sort,
+    });
+
+    res.json({
+      status: "OK",
+      ...data,
+    });
+  } catch (error) {
+    console.error("History error:", error);
+
+    res.status(500).json({
+      status: "ERROR",
+      message: "Błąd pobierania historii",
+    });
+  }
+});
+
+/*
+ * INICJALIZACJA BAZY I START SERWERA
+ */
+
+async function initDatabase() {
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS users (
+      id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+      email VARCHAR(255) NOT NULL UNIQUE,
+      password_hash VARCHAR(255) NOT NULL,
+      name VARCHAR(255) NOT NULL,
+      role ENUM('driver', 'admin') NOT NULL DEFAULT 'driver',
+      status ENUM('active', 'inactive') NOT NULL DEFAULT 'active',
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS work_sessions (
+      id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+      user_id INT UNSIGNED NOT NULL,
+      start_time DATETIME NOT NULL,
+      end_time DATETIME DEFAULT NULL,
+      duration_seconds INT UNSIGNED DEFAULT NULL,
+      duration_time TIME DEFAULT NULL,
+      app_amount DECIMAL(10, 2) DEFAULT NULL,
+      uber_app_amount DECIMAL(10, 2) DEFAULT NULL,
+      bolt_app_amount DECIMAL(10, 2) DEFAULT NULL,
+      business_date DATE NOT NULL,
+      PRIMARY KEY (id),
+      KEY idx_work_sessions_user_id (user_id),
+      KEY idx_work_sessions_business_date (business_date),
+      CONSTRAINT fk_work_sessions_user
+        FOREIGN KEY (user_id) REFERENCES users (id)
+        ON DELETE CASCADE ON UPDATE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+  `);
+
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS cash_entries (
+      id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+      user_id INT UNSIGNED NOT NULL,
+      work_session_id INT UNSIGNED NOT NULL,
+      source ENUM('uber', 'bolt') NOT NULL,
+      amount DECIMAL(10, 2) NOT NULL,
+      note VARCHAR(255) DEFAULT NULL,
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (id),
+      KEY idx_cash_entries_user_id (user_id),
+      KEY idx_cash_entries_work_session_id (work_session_id),
+      CONSTRAINT fk_cash_entries_user
+        FOREIGN KEY (user_id) REFERENCES users (id)
+        ON DELETE CASCADE ON UPDATE CASCADE,
+      CONSTRAINT fk_cash_entries_work_session
+        FOREIGN KEY (work_session_id) REFERENCES work_sessions (id)
+        ON DELETE CASCADE ON UPDATE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+  `);
+
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS work_day_totals (
+      id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+      user_id INT UNSIGNED NOT NULL,
+      work_date DATE NOT NULL,
+      cash_total DECIMAL(10, 2) NOT NULL DEFAULT 0,
+      apps_total DECIMAL(10, 2) NOT NULL DEFAULT 0,
+      day_total DECIMAL(10, 2) NOT NULL DEFAULT 0,
+      note VARCHAR(255) DEFAULT NULL,
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      PRIMARY KEY (id),
+      UNIQUE KEY uq_work_day_totals_user_date (user_id, work_date),
+      CONSTRAINT fk_work_day_totals_user
+        FOREIGN KEY (user_id) REFERENCES users (id)
+        ON DELETE CASCADE ON UPDATE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+  `);
+
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS earnings_entries (
+      id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+      user_id INT UNSIGNED NOT NULL,
+      work_session_id INT UNSIGNED DEFAULT NULL,
+      source ENUM('uber', 'bolt') NOT NULL DEFAULT 'uber',
+      amount DECIMAL(10, 2) NOT NULL,
+      note VARCHAR(255) DEFAULT NULL,
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      PRIMARY KEY (id),
+      KEY idx_earnings_entries_user_id (user_id),
+      KEY idx_earnings_entries_work_session_id (work_session_id),
+      KEY idx_earnings_entries_created_at (created_at),
+      CONSTRAINT fk_earnings_entries_user
+        FOREIGN KEY (user_id) REFERENCES users (id)
+        ON DELETE CASCADE ON UPDATE CASCADE,
+      CONSTRAINT fk_earnings_entries_work_session
+        FOREIGN KEY (work_session_id) REFERENCES work_sessions (id)
+        ON DELETE SET NULL ON UPDATE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+  `);
+}
 
 if (require.main === module) {
   (async () => {
     try {
-      await db.execute(`
-        CREATE TABLE IF NOT EXISTS users (
-          id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-          email VARCHAR(255) NOT NULL UNIQUE,
-          password_hash VARCHAR(255) NOT NULL,
-          name VARCHAR(255) NOT NULL,
-          role ENUM('driver', 'admin') NOT NULL DEFAULT 'driver',
-          status ENUM('active', 'inactive') NOT NULL DEFAULT 'active',
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-      `);
-
-      await db.execute(`
-        CREATE TABLE IF NOT EXISTS work_sessions (
-          id INT UNSIGNED NOT NULL AUTO_INCREMENT,
-          user_id INT UNSIGNED NOT NULL,
-          start_time DATETIME NOT NULL,
-          end_time DATETIME DEFAULT NULL,
-          duration_seconds INT UNSIGNED DEFAULT NULL,
-          duration_time TIME DEFAULT NULL,
-          app_amount DECIMAL(10, 2) DEFAULT NULL,
-          uber_app_amount DECIMAL(10, 2) DEFAULT NULL,
-          bolt_app_amount DECIMAL(10, 2) DEFAULT NULL,
-          business_date DATE NOT NULL,
-          PRIMARY KEY (id),
-          KEY idx_work_sessions_user_id (user_id),
-          KEY idx_work_sessions_business_date (business_date),
-          CONSTRAINT fk_work_sessions_user
-            FOREIGN KEY (user_id) REFERENCES users (id)
-            ON DELETE CASCADE ON UPDATE CASCADE
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
-      `);
-
-      await db.execute(`
-        CREATE TABLE IF NOT EXISTS cash_entries (
-          id INT UNSIGNED NOT NULL AUTO_INCREMENT,
-          user_id INT UNSIGNED NOT NULL,
-          work_session_id INT UNSIGNED NOT NULL,
-          source ENUM('uber', 'bolt') NOT NULL,
-          amount DECIMAL(10, 2) NOT NULL,
-          note VARCHAR(255) DEFAULT NULL,
-          created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-          PRIMARY KEY (id),
-          KEY idx_cash_entries_user_id (user_id),
-          KEY idx_cash_entries_work_session_id (work_session_id),
-          CONSTRAINT fk_cash_entries_user
-            FOREIGN KEY (user_id) REFERENCES users (id)
-            ON DELETE CASCADE ON UPDATE CASCADE,
-          CONSTRAINT fk_cash_entries_work_session
-            FOREIGN KEY (work_session_id) REFERENCES work_sessions (id)
-            ON DELETE CASCADE ON UPDATE CASCADE
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
-      `);
-
-      await db.execute(`
-        CREATE TABLE IF NOT EXISTS work_day_totals (
-          id INT UNSIGNED NOT NULL AUTO_INCREMENT,
-          user_id INT UNSIGNED NOT NULL,
-          work_date DATE NOT NULL,
-          cash_total DECIMAL(10, 2) NOT NULL DEFAULT 0,
-          apps_total DECIMAL(10, 2) NOT NULL DEFAULT 0,
-          day_total DECIMAL(10, 2) NOT NULL DEFAULT 0,
-          note VARCHAR(255) DEFAULT NULL,
-          created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-          updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-          PRIMARY KEY (id),
-          UNIQUE KEY uq_work_day_totals_user_date (user_id, work_date),
-          CONSTRAINT fk_work_day_totals_user
-            FOREIGN KEY (user_id) REFERENCES users (id)
-            ON DELETE CASCADE ON UPDATE CASCADE
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
-      `);
-
-      await db.execute(`
-        CREATE TABLE IF NOT EXISTS earnings_entries (
-          id INT UNSIGNED NOT NULL AUTO_INCREMENT,
-          user_id INT UNSIGNED NOT NULL,
-          work_session_id INT UNSIGNED DEFAULT NULL,
-          source ENUM('uber', 'bolt') NOT NULL DEFAULT 'uber',
-          amount DECIMAL(10, 2) NOT NULL,
-          note VARCHAR(255) DEFAULT NULL,
-          created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-          updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-          PRIMARY KEY (id),
-          KEY idx_earnings_entries_user_id (user_id),
-          KEY idx_earnings_entries_work_session_id (work_session_id),
-          KEY idx_earnings_entries_created_at (created_at),
-          CONSTRAINT fk_earnings_entries_user
-            FOREIGN KEY (user_id) REFERENCES users (id)
-            ON DELETE CASCADE ON UPDATE CASCADE,
-          CONSTRAINT fk_earnings_entries_work_session
-            FOREIGN KEY (work_session_id) REFERENCES work_sessions (id)
-            ON DELETE SET NULL ON UPDATE CASCADE
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
-      `);
+      await initDatabase();
 
       app.listen(PORT, "0.0.0.0", () => {
         console.log(`Taxi app running on port ${PORT}`);

@@ -6,76 +6,86 @@ function safeNumber(value) {
   return Number.isFinite(n) ? n : 0;
 }
 
+function normalizeDateKey(value) {
+  if (value instanceof Date) {
+    return value.toISOString().slice(0, 10);
+  }
+
+  return String(value || "").slice(0, 10);
+}
+
 async function loadPeriodSummary(userId, startDate, endDate) {
-  const [sessionRows] = await db.execute(
-    `
-    SELECT
-      business_date,
-      COUNT(*) AS session_count,
-      COALESCE(SUM(
-        CASE
-          WHEN end_time IS NOT NULL THEN duration_seconds
-          ELSE TIMESTAMPDIFF(SECOND, start_time, NOW())
-        END
-      ), 0) AS work_seconds
-    FROM work_sessions
-    WHERE user_id = ?
-      AND business_date BETWEEN ? AND ?
-    GROUP BY business_date
-    ORDER BY business_date ASC
-    `,
-    [userId, startDate, endDate],
-  );
-
-  const [cashRows] = await db.execute(
-    `
-    SELECT
-      ws.business_date,
-      COALESCE(SUM(ce.amount), 0) AS cash_total
-    FROM cash_entries ce
-    JOIN work_sessions ws ON ws.id = ce.work_session_id
-    WHERE ce.user_id = ?
-      AND ws.business_date BETWEEN ? AND ?
-    GROUP BY ws.business_date
-    ORDER BY ws.business_date ASC
-    `,
-    [userId, startDate, endDate],
-  );
-
-  const [appRows] = await db.execute(
-    `
-    WITH last_app_sessions AS (
+  const [[sessionRows], [cashRows], [appRows]] = await Promise.all([
+    db.execute(
+      `
+      SELECT
+        business_date,
+        COUNT(*) AS session_count,
+        COALESCE(SUM(
+          CASE
+            WHEN end_time IS NOT NULL THEN duration_seconds
+            ELSE TIMESTAMPDIFF(SECOND, start_time, NOW())
+          END
+        ), 0) AS work_seconds
+      FROM work_sessions
+      WHERE user_id = ?
+        AND business_date BETWEEN ? AND ?
+      GROUP BY business_date
+      ORDER BY business_date ASC
+      `,
+      [userId, startDate, endDate],
+    ),
+    db.execute(
+      `
+      SELECT
+        ws.business_date,
+        COALESCE(SUM(ce.amount), 0) AS cash_total
+      FROM cash_entries ce
+      JOIN work_sessions ws ON ws.id = ce.work_session_id
+      WHERE ce.user_id = ?
+        AND ws.business_date BETWEEN ? AND ?
+      GROUP BY ws.business_date
+      ORDER BY ws.business_date ASC
+      `,
+      [userId, startDate, endDate],
+    ),
+    db.execute(
+      `
+      WITH last_app_sessions AS (
+        SELECT
+          business_date,
+          uber_app_amount,
+          bolt_app_amount,
+          app_amount,
+          ROW_NUMBER() OVER (
+            PARTITION BY business_date
+            ORDER BY start_time DESC, id DESC
+          ) AS rn
+        FROM work_sessions
+        WHERE user_id = ?
+          AND business_date BETWEEN ? AND ?
+          AND app_amount IS NOT NULL
+      )
       SELECT
         business_date,
         uber_app_amount,
         bolt_app_amount,
-        app_amount,
-        ROW_NUMBER() OVER (
-          PARTITION BY business_date
-          ORDER BY start_time DESC, id DESC
-        ) AS rn
-      FROM work_sessions
-      WHERE user_id = ?
-        AND business_date BETWEEN ? AND ?
-        AND app_amount IS NOT NULL
-    )
-    SELECT
-      business_date,
-      uber_app_amount,
-      bolt_app_amount,
-      app_amount
-    FROM last_app_sessions
-    WHERE rn = 1
-    ORDER BY business_date ASC
-    `,
-    [userId, startDate, endDate],
-  );
+        app_amount
+      FROM last_app_sessions
+      WHERE rn = 1
+      ORDER BY business_date ASC
+      `,
+      [userId, startDate, endDate],
+    ),
+  ]);
 
   const days = new Map();
 
-  function ensureDay(date) {
-    if (!days.has(date)) {
-      days.set(date, {
+  function ensureDay(rawDate) {
+    const dateKey = normalizeDateKey(rawDate);
+
+    if (!days.has(dateKey)) {
+      days.set(dateKey, {
         session_count: 0,
         work_seconds: 0,
         cash_total: 0,
@@ -85,7 +95,7 @@ async function loadPeriodSummary(userId, startDate, endDate) {
       });
     }
 
-    return days.get(date);
+    return days.get(dateKey);
   }
 
   for (const row of sessionRows) {
@@ -142,9 +152,11 @@ async function getDashboardSummary(userId) {
   const weekRange = getWeekRange(today);
   const monthRange = getMonthRange(today);
 
-  const day = await loadPeriodSummary(userId, today, today);
-  const week = await loadPeriodSummary(userId, weekRange.start, weekRange.end);
-  const month = await loadPeriodSummary(userId, monthRange.start, monthRange.end);
+  const [day, week, month] = await Promise.all([
+    loadPeriodSummary(userId, today, today),
+    loadPeriodSummary(userId, weekRange.start, weekRange.end),
+    loadPeriodSummary(userId, monthRange.start, monthRange.end),
+  ]);
 
   return {
     day,
@@ -155,4 +167,5 @@ async function getDashboardSummary(userId) {
 
 module.exports = {
   getDashboardSummary,
+  loadPeriodSummary,
 };

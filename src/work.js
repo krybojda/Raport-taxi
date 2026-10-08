@@ -1,22 +1,61 @@
 const db = require("./database");
 const { getBusinessDate } = require("./businessDate");
 
-/*
- * ROZPOCZĘCIE PRACY
- */
-async function startWork(userId) {
-  const [activeSessions] = await db.execute(
+const WORK_SESSION_COLUMNS = `
+  id,
+  user_id,
+  start_time,
+  end_time,
+  duration_seconds,
+  duration_time,
+  app_amount,
+  uber_app_amount,
+  bolt_app_amount,
+  business_date
+`;
+
+async function getWorkSessionById(sessionId) {
+  const [sessions] = await db.execute(
     `
-    SELECT id, start_time
+    SELECT
+      ${WORK_SESSION_COLUMNS}
+    FROM work_sessions
+    WHERE id = ?
+    LIMIT 1
+    `,
+    [sessionId],
+  );
+
+  return sessions[0] || null;
+}
+
+/*
+ * AKTUALNA SESJA
+ */
+async function getCurrentWork(userId) {
+  const [sessions] = await db.execute(
+    `
+    SELECT
+      ${WORK_SESSION_COLUMNS}
     FROM work_sessions
     WHERE user_id = ?
       AND end_time IS NULL
+    ORDER BY start_time DESC
     LIMIT 1
     `,
     [userId],
   );
 
-  if (activeSessions.length > 0) {
+  return sessions[0] || null;
+}
+
+/*
+ * ROZPOCZĘCIE PRACY
+ */
+async function startWork(userId) {
+  const activeSession = await getCurrentWork(userId);
+
+  if (activeSession) {
     throw new Error("Masz już aktywną sesję pracy");
   }
 
@@ -40,52 +79,18 @@ async function startWork(userId) {
     [userId, businessDate],
   );
 
-  const [sessions] = await db.execute(
-    `
-    SELECT
-      id,
-      user_id,
-      start_time,
-      end_time,
-      duration_seconds,
-      duration_time,
-      app_amount,
-       uber_app_amount,
-       bolt_app_amount,
-      business_date
-    FROM work_sessions
-    WHERE id = ?
-    LIMIT 1
-    `,
-    [result.insertId],
-  );
-
-  return sessions[0];
+  return getWorkSessionById(result.insertId);
 }
 
 /*
  * ZAKOŃCZENIE PRACY
  */
 async function stopWork(userId) {
-  const [activeSessions] = await db.execute(
-    `
-    SELECT
-      id,
-      start_time
-    FROM work_sessions
-    WHERE user_id = ?
-      AND end_time IS NULL
-    ORDER BY start_time DESC
-    LIMIT 1
-    `,
-    [userId],
-  );
+  const activeSession = await getCurrentWork(userId);
 
-  if (activeSessions.length === 0) {
+  if (!activeSession) {
     throw new Error("Nie masz aktywnej sesji pracy");
   }
-
-  const session = activeSessions[0];
 
   await db.execute(
     `
@@ -96,30 +101,10 @@ async function stopWork(userId) {
       duration_time = SEC_TO_TIME(TIMESTAMPDIFF(SECOND, start_time, NOW()))
     WHERE id = ?
     `,
-    [session.id],
+    [activeSession.id],
   );
 
-  const [sessions] = await db.execute(
-    `
-    SELECT
-      id,
-      user_id,
-      start_time,
-      end_time,
-      duration_seconds,
-      duration_time,
-      app_amount,
-       uber_app_amount,
-       bolt_app_amount,
-      business_date
-    FROM work_sessions
-    WHERE id = ?
-    LIMIT 1
-    `,
-    [session.id],
-  );
-
-  return sessions[0];
+  return getWorkSessionById(activeSession.id);
 }
 
 /*
@@ -138,24 +123,13 @@ async function setCurrentWorkAppAmount(userId, uberAppAmount, boltAppAmount = 0)
     throw new Error("Podaj poprawne kwoty z aplikacji");
   }
 
-  const [activeSessions] = await db.execute(
-    `
-    SELECT
-      id
-    FROM work_sessions
-    WHERE user_id = ?
-      AND end_time IS NULL
-    ORDER BY start_time DESC
-    LIMIT 1
-    `,
-    [userId],
-  );
+  const activeSession = await getCurrentWork(userId);
 
-  if (activeSessions.length === 0) {
+  if (!activeSession) {
     throw new Error("Nie masz aktywnej sesji pracy");
   }
 
-  const session = activeSessions[0];
+  const totalAppAmount = numericUberAmount + numericBoltAmount;
 
   await db.execute(
     `
@@ -166,59 +140,10 @@ async function setCurrentWorkAppAmount(userId, uberAppAmount, boltAppAmount = 0)
       app_amount = ?
     WHERE id = ?
     `,
-    [numericUberAmount, numericBoltAmount, numericUberAmount + numericBoltAmount, session.id],
+    [numericUberAmount, numericBoltAmount, totalAppAmount, activeSession.id],
   );
 
-  const [rows] = await db.execute(
-    `
-    SELECT
-      id,
-      user_id,
-      start_time,
-      end_time,
-      duration_seconds,
-      duration_time,
-      app_amount,
-       uber_app_amount,
-       bolt_app_amount,
-      business_date
-    FROM work_sessions
-    WHERE id = ?
-    LIMIT 1
-    `,
-    [session.id],
-  );
-
-  return rows[0];
-}
-
-/*
- * AKTUALNA SESJA
- */
-async function getCurrentWork(userId) {
-  const [sessions] = await db.execute(
-    `
-    SELECT
-      id,
-      user_id,
-      start_time,
-      end_time,
-      duration_seconds,
-      duration_time,
-      app_amount,
-      uber_app_amount,
-      bolt_app_amount,
-      business_date
-    FROM work_sessions
-    WHERE user_id = ?
-      AND end_time IS NULL
-    ORDER BY start_time DESC
-    LIMIT 1
-    `,
-    [userId],
-  );
-
-  return sessions[0] || null;
+  return getWorkSessionById(activeSession.id);
 }
 
 /*
@@ -230,27 +155,11 @@ async function getTodayWork(userId) {
   const [sessions] = await db.execute(
     `
     SELECT
-      id,
-      start_time,
-      end_time,
-      duration_seconds,
-      duration_time,
-      app_amount,
-      uber_app_amount,
-      bolt_app_amount,
-      business_date,
+      ${WORK_SESSION_COLUMNS},
       CASE
         WHEN end_time IS NOT NULL
-        THEN TIMESTAMPDIFF(
-          SECOND,
-          start_time,
-          end_time
-        )
-        ELSE TIMESTAMPDIFF(
-          SECOND,
-          start_time,
-          NOW()
-        )
+        THEN TIMESTAMPDIFF(SECOND, start_time, end_time)
+        ELSE TIMESTAMPDIFF(SECOND, start_time, NOW())
       END AS duration_seconds_live
     FROM work_sessions
     WHERE user_id = ?
@@ -266,23 +175,17 @@ async function getTodayWork(userId) {
 /*
  * OSTATNIE SESJE PRACY
  */
-async function getRecentWork(userId) {
+async function getRecentWork(userId, limit = 10) {
+  const safeLimit = Math.max(1, Math.min(100, Number(limit) || 10));
+
   const [sessions] = await db.execute(
     `
     SELECT
-      id,
-      start_time,
-      end_time,
-      duration_seconds,
-      duration_time,
-      app_amount,
-      uber_app_amount,
-      bolt_app_amount,
-      business_date
+      ${WORK_SESSION_COLUMNS}
     FROM work_sessions
     WHERE user_id = ?
     ORDER BY start_time DESC
-    LIMIT 10
+    LIMIT ${safeLimit}
     `,
     [userId],
   );
@@ -297,4 +200,5 @@ module.exports = {
   getCurrentWork,
   getTodayWork,
   getRecentWork,
+  getWorkSessionById,
 };

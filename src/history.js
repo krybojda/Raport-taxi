@@ -1,36 +1,30 @@
 const db = require("./database");
 
-function normalizeType(type) {
-  if (["all", "sessions", "cash", "earnings"].includes(type)) {
-    return type;
-  }
+const ALLOWED_TYPES = ["all", "sessions", "cash", "earnings"];
+const ALLOWED_SOURCES = ["all", "uber", "bolt"];
+const ALLOWED_SORTS = [
+  "date_desc",
+  "date_asc",
+  "amount_desc",
+  "amount_asc",
+  "duration_desc",
+  "duration_asc",
+];
 
-  return "all";
+function normalizeType(type) {
+  return ALLOWED_TYPES.includes(type) ? type : "all";
 }
 
 function normalizeSource(source) {
-  if (["all", "uber", "bolt"].includes(source)) {
-    return source;
-  }
-
-  return "all";
+  return ALLOWED_SOURCES.includes(source) ? source : "all";
 }
 
 function normalizeSort(sort) {
-  if (
-    [
-      "date_desc",
-      "date_asc",
-      "amount_desc",
-      "amount_asc",
-      "duration_desc",
-      "duration_asc",
-    ].includes(sort)
-  ) {
-    return sort;
-  }
+  return ALLOWED_SORTS.includes(sort) ? sort : "date_desc";
+}
 
-  return "date_desc";
+function isValidDateString(value) {
+  return typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value);
 }
 
 function formatSourceLabel(source) {
@@ -42,6 +36,109 @@ function formatSourceLabel(source) {
 function safeNumber(value) {
   const n = Number(value || 0);
   return Number.isFinite(n) ? n : 0;
+}
+
+function buildDateFilter(dateColumn, userId, from, to, source = "all") {
+  const where = ["user_id = ?"];
+  const params = [userId];
+
+  if (from) {
+    where.push(`DATE(${dateColumn}) >= ?`);
+    params.push(from);
+  } else {
+    where.push(`DATE(${dateColumn}) >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)`);
+  }
+
+  if (to) {
+    where.push(`DATE(${dateColumn}) <= ?`);
+    params.push(to);
+  } else {
+    where.push(`DATE(${dateColumn}) <= CURDATE()`);
+  }
+
+  if (source === "uber" || source === "bolt") {
+    where.push("source = ?");
+    params.push(source);
+  }
+
+  return {
+    whereClause: where.join(" AND "),
+    params,
+  };
+}
+
+async function loadSessionEntries(userId, from, to) {
+  const { whereClause, params } = buildDateFilter("start_time", userId, from, to);
+
+  const [rows] = await db.execute(
+    `
+    SELECT
+      id,
+      user_id,
+      start_time,
+      end_time,
+      duration_seconds,
+      COALESCE(
+        duration_seconds,
+        TIMESTAMPDIFF(SECOND, start_time, NOW())
+      ) AS effective_duration_seconds
+    FROM work_sessions
+    WHERE ${whereClause}
+    ORDER BY start_time ASC
+    `,
+    params,
+  );
+
+  return rows.map((row) => ({
+    kind: "session",
+    id: row.id,
+    date_time: row.start_time,
+    title: "Sesja pracy",
+    source: null,
+    source_label: "-",
+    session_id: row.id,
+    amount: null,
+    duration_seconds: safeNumber(row.effective_duration_seconds),
+    note: null,
+    start_time: row.start_time,
+    end_time: row.end_time,
+  }));
+}
+
+async function loadFinancialEntries(tableName, kind, title, userId, from, to, source) {
+  const { whereClause, params } = buildDateFilter("created_at", userId, from, to, source);
+
+  const [rows] = await db.execute(
+    `
+    SELECT
+      id,
+      user_id,
+      work_session_id,
+      source,
+      amount,
+      note,
+      created_at
+    FROM ${tableName}
+    WHERE ${whereClause}
+    ORDER BY created_at ASC
+    `,
+    params,
+  );
+
+  return rows.map((row) => ({
+    kind,
+    id: row.id,
+    date_time: row.created_at,
+    title,
+    source: row.source,
+    source_label: formatSourceLabel(row.source),
+    session_id: row.work_session_id,
+    amount: safeNumber(row.amount),
+    duration_seconds: null,
+    note: row.note || null,
+    start_time: null,
+    end_time: null,
+  }));
 }
 
 function sortEntries(entries, sort) {
@@ -101,171 +198,40 @@ async function getHistory(userId, options = {}) {
   const source = normalizeSource(options.source);
   const sort = normalizeSort(options.sort);
 
-  const from =
-    typeof options.from === "string" && /^\d{4}-\d{2}-\d{2}$/.test(options.from)
-      ? options.from
-      : null;
-
-  const to =
-    typeof options.to === "string" && /^\d{4}-\d{2}-\d{2}$/.test(options.to) ? options.to : null;
-
-  const sessionWhere = ["user_id = ?"];
-  const sessionParams = [userId];
-
-  const cashWhere = ["user_id = ?"];
-  const cashParams = [userId];
-
-  const earningsWhere = ["user_id = ?"];
-  const earningsParams = [userId];
-
-  if (from) {
-    sessionWhere.push("DATE(start_time) >= ?");
-    cashWhere.push("DATE(created_at) >= ?");
-    earningsWhere.push("DATE(created_at) >= ?");
-
-    sessionParams.push(from);
-    cashParams.push(from);
-    earningsParams.push(from);
-  } else {
-    sessionWhere.push("DATE(start_time) >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)");
-    cashWhere.push("DATE(created_at) >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)");
-    earningsWhere.push("DATE(created_at) >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)");
-  }
-
-  if (to) {
-    sessionWhere.push("DATE(start_time) <= ?");
-    cashWhere.push("DATE(created_at) <= ?");
-    earningsWhere.push("DATE(created_at) <= ?");
-
-    sessionParams.push(to);
-    cashParams.push(to);
-    earningsParams.push(to);
-  } else {
-    sessionWhere.push("DATE(start_time) <= CURDATE()");
-    cashWhere.push("DATE(created_at) <= CURDATE()");
-    earningsWhere.push("DATE(created_at) <= CURDATE()");
-  }
+  const from = isValidDateString(options.from) ? options.from : null;
+  const to = isValidDateString(options.to) ? options.to : null;
 
   const entries = [];
 
   if (type === "all" || type === "sessions") {
-    const [rows] = await db.execute(
-      `
-      SELECT
-        id,
-        user_id,
-        start_time,
-        end_time,
-        duration_seconds,
-        COALESCE(
-          duration_seconds,
-          TIMESTAMPDIFF(SECOND, start_time, NOW())
-        ) AS effective_duration_seconds
-      FROM work_sessions
-      WHERE ${sessionWhere.join(" AND ")}
-      ORDER BY start_time ASC
-      `,
-      sessionParams,
-    );
-
-    for (const row of rows) {
-      entries.push({
-        kind: "session",
-        id: row.id,
-        date_time: row.start_time,
-        title: "Sesja pracy",
-        source: null,
-        source_label: "-",
-        session_id: row.id,
-        amount: null,
-        duration_seconds: safeNumber(row.effective_duration_seconds),
-        note: null,
-        start_time: row.start_time,
-        end_time: row.end_time,
-      });
-    }
+    const sessionEntries = await loadSessionEntries(userId, from, to);
+    entries.push(...sessionEntries);
   }
 
   if (type === "all" || type === "cash") {
-    if (source === "uber" || source === "bolt") {
-      cashWhere.push("source = ?");
-      cashParams.push(source);
-    }
-
-    const [rows] = await db.execute(
-      `
-      SELECT
-        id,
-        user_id,
-        work_session_id,
-        source,
-        amount,
-        note,
-        created_at
-      FROM cash_entries
-      WHERE ${cashWhere.join(" AND ")}
-      ORDER BY created_at ASC
-      `,
-      cashParams,
+    const cashEntries = await loadFinancialEntries(
+      "cash_entries",
+      "cash",
+      "Gotówka",
+      userId,
+      from,
+      to,
+      source,
     );
-
-    for (const row of rows) {
-      entries.push({
-        kind: "cash",
-        id: row.id,
-        date_time: row.created_at,
-        title: "Gotówka",
-        source: row.source,
-        source_label: formatSourceLabel(row.source),
-        session_id: row.work_session_id,
-        amount: safeNumber(row.amount),
-        duration_seconds: null,
-        note: row.note || null,
-        start_time: null,
-        end_time: null,
-      });
-    }
+    entries.push(...cashEntries);
   }
 
   if (type === "all" || type === "earnings") {
-    if (source === "uber" || source === "bolt") {
-      earningsWhere.push("source = ?");
-      earningsParams.push(source);
-    }
-
-    const [rows] = await db.execute(
-      `
-      SELECT
-        id,
-        user_id,
-        work_session_id,
-        source,
-        amount,
-        note,
-        created_at
-      FROM earnings_entries
-      WHERE ${earningsWhere.join(" AND ")}
-      ORDER BY created_at ASC
-      `,
-      earningsParams,
+    const earningEntries = await loadFinancialEntries(
+      "earnings_entries",
+      "earning",
+      "Zarobek",
+      userId,
+      from,
+      to,
+      source,
     );
-
-    for (const row of rows) {
-      entries.push({
-        kind: "earning",
-        id: row.id,
-        date_time: row.created_at,
-        title: "Zarobek",
-        source: row.source,
-        source_label: formatSourceLabel(row.source),
-        session_id: row.work_session_id,
-        amount: safeNumber(row.amount),
-        duration_seconds: null,
-        note: row.note || null,
-        start_time: null,
-        end_time: null,
-      });
-    }
+    entries.push(...earningEntries);
   }
 
   sortEntries(entries, sort);
@@ -319,4 +285,7 @@ async function getHistory(userId, options = {}) {
 
 module.exports = {
   getHistory,
+  normalizeType,
+  normalizeSource,
+  normalizeSort,
 };
