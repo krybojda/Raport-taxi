@@ -1,4 +1,5 @@
 const db = require("./database");
+const { getBusinessDate, addDays } = require("./businessDate");
 
 const ALLOWED_TYPES = ["all", "sessions", "cash", "earnings"];
 const ALLOWED_SOURCES = ["all", "uber", "bolt"];
@@ -39,22 +40,11 @@ function safeNumber(value) {
 }
 
 function buildDateFilter(dateColumn, userId, from, to, source = "all") {
-  const where = ["user_id = ?"];
-  const params = [userId];
+  const today = getBusinessDate();
+  const defaultFrom = addDays(today, -30);
 
-  if (from) {
-    where.push(`DATE(${dateColumn}) >= ?`);
-    params.push(from);
-  } else {
-    where.push(`DATE(${dateColumn}) >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)`);
-  }
-
-  if (to) {
-    where.push(`DATE(${dateColumn}) <= ?`);
-    params.push(to);
-  } else {
-    where.push(`DATE(${dateColumn}) <= CURDATE()`);
-  }
+  const where = ["user_id = ?", `DATE(${dateColumn}) >= ?`, `DATE(${dateColumn}) <= ?`];
+  const params = [userId, from || defaultFrom, to || today];
 
   if (source === "uber" || source === "bolt") {
     where.push("source = ?");

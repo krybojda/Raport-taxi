@@ -1,5 +1,24 @@
 const db = require("./database");
+const { getBusinessDate } = require("./businessDate");
 const { getCurrentWork } = require("./work");
+
+function calculateCashTotals(entries) {
+  return entries.reduce(
+    (acc, entry) => {
+      const amount = Number(entry.amount || 0);
+
+      if (entry.source === "uber") {
+        acc.uber += amount;
+      } else if (entry.source === "bolt") {
+        acc.bolt += amount;
+      }
+
+      acc.total += amount;
+      return acc;
+    },
+    { uber: 0, bolt: 0, total: 0 },
+  );
+}
 
 async function addCashEntry(userId, amount, source, note = null) {
   const numericAmount = Number(amount);
@@ -92,31 +111,17 @@ async function getCurrentSessionCash(userId) {
     [userId, currentSession.id],
   );
 
-  const totals = entries.reduce(
-    (acc, entry) => {
-      const amount = Number(entry.amount || 0);
-
-      if (entry.source === "uber") {
-        acc.uber += amount;
-      } else if (entry.source === "bolt") {
-        acc.bolt += amount;
-      }
-
-      acc.total += amount;
-      return acc;
-    },
-    { uber: 0, bolt: 0, total: 0 },
-  );
-
   return {
     working: true,
     session: currentSession,
     entries,
-    totals,
+    totals: calculateCashTotals(entries),
   };
 }
 
 async function getTodayCash(userId) {
+  const businessDate = getBusinessDate();
+
   const [entries] = await db.execute(
     `
     SELECT
@@ -133,31 +138,15 @@ async function getTodayCash(userId) {
     LEFT JOIN work_sessions ws
       ON ws.id = ce.work_session_id
     WHERE ce.user_id = ?
-      AND DATE(ce.created_at) = CURDATE()
+      AND COALESCE(ws.business_date, DATE(ce.created_at)) = ?
     ORDER BY ce.created_at ASC
     `,
-    [userId],
-  );
-
-  const totals = entries.reduce(
-    (acc, entry) => {
-      const amount = Number(entry.amount || 0);
-
-      if (entry.source === "uber") {
-        acc.uber += amount;
-      } else if (entry.source === "bolt") {
-        acc.bolt += amount;
-      }
-
-      acc.total += amount;
-      return acc;
-    },
-    { uber: 0, bolt: 0, total: 0 },
+    [userId, businessDate],
   );
 
   return {
     entries,
-    totals,
+    totals: calculateCashTotals(entries),
   };
 }
 

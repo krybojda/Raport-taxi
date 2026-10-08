@@ -19,10 +19,23 @@ function formatDurationLong(seconds) {
   ].join(":");
 }
 
+/**
+ * Parsuje datę z API — MySQL zwraca DATETIME bez strefy czasowej ("2026-10-08 13:11:43"),
+ * co przeglądarka interpretuje jako czas lokalny (Warsaw UTC+2) zamiast UTC.
+ * Ta funkcja wymusza parsowanie jako UTC, niezależnie od formatu stringa.
+ */
+function parseApiDate(dateString) {
+  if (!dateString) return null;
+  if (String(dateString).includes("Z") || String(dateString).includes("+")) {
+    return new Date(dateString);
+  }
+  return new Date(String(dateString).replace(" ", "T") + "Z");
+}
+
 function formatDateTime(dateString) {
   if (!dateString) return "-";
 
-  return new Date(dateString).toLocaleString("pl-PL", {
+  return parseApiDate(dateString).toLocaleString("pl-PL", {
     dateStyle: "short",
     timeStyle: "short",
   });

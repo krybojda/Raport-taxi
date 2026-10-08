@@ -11,7 +11,12 @@ const WORK_SESSION_COLUMNS = `
   app_amount,
   uber_app_amount,
   bolt_app_amount,
-  business_date
+  business_date,
+  CASE
+    WHEN end_time IS NOT NULL
+    THEN COALESCE(duration_seconds, TIMESTAMPDIFF(SECOND, start_time, end_time))
+    ELSE TIMESTAMPDIFF(SECOND, start_time, NOW())
+  END AS duration_seconds_live
 `;
 
 async function getWorkSessionById(sessionId) {
@@ -155,12 +160,7 @@ async function getTodayWork(userId) {
   const [sessions] = await db.execute(
     `
     SELECT
-      ${WORK_SESSION_COLUMNS},
-      CASE
-        WHEN end_time IS NOT NULL
-        THEN TIMESTAMPDIFF(SECOND, start_time, end_time)
-        ELSE TIMESTAMPDIFF(SECOND, start_time, NOW())
-      END AS duration_seconds_live
+      ${WORK_SESSION_COLUMNS}
     FROM work_sessions
     WHERE user_id = ?
       AND business_date = ?

@@ -32,21 +32,42 @@ function formatMoney(value) {
   }).format(Number(value || 0));
 }
 
+/**
+ * Parsuje datę z API — MySQL zwraca DATETIME bez strefy czasowej ("2026-10-08 13:11:43"),
+ * co przeglądarka interpretuje jako czas lokalny (Warsaw UTC+2) zamiast UTC.
+ * Ta funkcja wymusza parsowanie jako UTC, niezależnie od formatu stringa.
+ */
+function parseApiDate(dateString) {
+  if (!dateString) return null;
+  // ISO 8601 z Z lub offsetem — przeglądarka parsuje poprawnie
+  if (String(dateString).includes("Z") || String(dateString).includes("+")) {
+    return new Date(dateString);
+  }
+  // MySQL DATETIME ("YYYY-MM-DD HH:MM:SS") — dołącz Z, żeby wymusić UTC
+  return new Date(String(dateString).replace(" ", "T") + "Z");
+}
+
 function formatDateTime(dateString) {
   if (!dateString) {
     return "-";
   }
 
-  return new Date(dateString).toLocaleString("pl-PL", {
+  return parseApiDate(dateString).toLocaleString("pl-PL", {
     dateStyle: "short",
     timeStyle: "short",
   });
 }
 
-function startLiveTimer(startTime) {
+function startLiveTimer(startTime, durationSecondsLive) {
   stopLiveTimer();
 
-  currentSessionStart = new Date(startTime).getTime();
+  if (durationSecondsLive !== undefined && durationSecondsLive !== null) {
+    const elapsedSeconds = Math.max(0, Number(durationSecondsLive) || 0);
+    currentSessionStart = Date.now() - elapsedSeconds * 1000;
+  } else {
+    currentSessionStart = parseApiDate(startTime).getTime();
+  }
+
   updateLiveTimers();
 
   liveTimer = setInterval(updateLiveTimers, 1000);
@@ -171,7 +192,7 @@ function updateWorkStatus(working, session) {
     startButton.hidden = true;
     stopButton.hidden = false;
 
-    startLiveTimer(session.start_time);
+    startLiveTimer(session.start_time, session.duration_seconds_live);
   } else {
     statusElement.textContent = "Nie pracujesz";
     statusElement.className = "work-status not-working";
@@ -215,7 +236,6 @@ async function startWork() {
 
     await loadCurrentWork();
     await loadTodayWork();
-    await loadRecentWork();
     await loadCurrentCash();
     await loadTodayCash();
     await loadDashboardSummary();
@@ -255,7 +275,6 @@ async function stopWork() {
 
     await loadCurrentWork();
     await loadTodayWork();
-    await loadRecentWork();
     await loadCurrentCash();
     await loadTodayCash();
     await loadDashboardSummary();
@@ -294,35 +313,15 @@ async function loadTodayWork() {
       return total;
     }, 0);
 
-    if (!currentSessionStart) {
+    if (currentSessionStart) {
+      updateLiveTimers();
+    } else {
       document.getElementById("totalWorkTime").textContent = formatDurationLong(todayClosedSeconds);
     }
 
-    renderSessions(sessions);
+    renderSessions([...sessions].reverse().slice(0, 5));
   } catch (error) {
     console.error("Load today work error:", error);
-  }
-}
-
-async function loadRecentWork() {
-  try {
-    const response = await fetch("/api/work/recent", {
-      credentials: "include",
-    });
-
-    if (response.status === 401) {
-      window.location.href = "/login.html";
-      return;
-    }
-
-    if (!response.ok) {
-      return;
-    }
-
-    const data = await response.json();
-    renderSessions(data.sessions || []);
-  } catch (error) {
-    console.error("Load recent work error:", error);
   }
 }
 
@@ -436,12 +435,6 @@ async function loadCurrentCash() {
     }
 
     const data = await response.json();
-    const totals = data.totals || { uber: 0, bolt: 0, total: 0 };
-
-    document.getElementById("uberToday").textContent = formatMoney(totals.uber);
-    document.getElementById("boltToday").textContent = formatMoney(totals.bolt);
-    document.getElementById("cashToday").textContent = formatMoney(totals.total);
-
     renderCashEntries(data.entries || []);
   } catch (error) {
     console.error("Load current cash error:", error);
@@ -661,7 +654,6 @@ async function initDashboard() {
 
   await loadCurrentWork();
   await loadTodayWork();
-  await loadRecentWork();
   await loadCurrentCash();
   await loadTodayCash();
   await loadDashboardSummary();
